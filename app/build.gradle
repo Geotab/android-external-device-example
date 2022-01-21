@@ -1,14 +1,12 @@
 apply plugin: 'com.android.application'
 android {
-    compileSdkVersion 22
-    buildToolsVersion '25'
+    compileSdkVersion 30
     defaultConfig {
         applicationId "com.geotab.AOA"
-        minSdkVersion 14
-        targetSdkVersion 22
+        targetSdkVersion 30
         compileOptions {
-            sourceCompatibility JavaVersion.VERSION_1_5
-            targetCompatibility JavaVersion.VERSION_1_5
+            sourceCompatibility JavaVersion.VERSION_11
+            targetCompatibility JavaVersion.VERSION_11
         }
     }
     buildTypes {
