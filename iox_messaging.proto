@@ -1,0 +1,270 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+/**
+ * This Proto file defines message payloads for the Third party Message Type 0x8C (Protobuf Data Packet from IOX to GO) and Message Type 0x26 (Protobuf Data Packet from GO to IOX).
+ * The protobufs defined here follows a simple pub/sub protocol, where a third party IOX device can subscribe to one of the supported TOPICs (enum Topic) 
+ * and receive the desired information from the GO.
+ * The IOX Pub/Sub feature MUST be enabled via a Master switch" fEnableIoxPubsub' at offset 243 to use it correctly.
+ *
+ * Below is the main high level usage of messages:
+ * 1. Get a list of all the subscribable topics: IOX must send the 'list_avail_topics' message.
+ *      The GO device will respond with a 'topic_info_list' message.
+ *
+ * 2. Subscribe to a topic: IOX must send a 'sub' message to the GO device. 
+ *      The Go Responds with a 'sub_ack' message containing a SUB_ACK_RESULT_SUCCESS.
+ * 
+ * 3. Get a list of subscribed topics: IOX must send a 'list_subs' message. 
+ *      The GO device will respond with a 'topic_list' message.
+ *
+ * 4. How IOX gets published information for subscribed topics: 
+ *      When there is an update to a subscribed topic, the GO device will send the update in a 'pub' message.
+ *
+ * 5. Remove a topic from the subscription: IOX must send an 'unsub' message. 
+ *      The GO device will respond with a 'sub_ack' message containing a 'SUB_ACK_RESULT_SUCCESS'.
+ *
+ * 6. Clear the entire subscription list: IOX must send a 'clear_subs' message.
+ *      The GO device will respond with a 'clear_subs_ack' message with a 'CLEAR_SUBS_ACK_RESULT_SUCCESS'.
+ *
+ * Note: The 'sub_ack' and the 'clear_subs_ack' message can contain the source of error when a request cannot be performed successfully.
+ *
+ * Note: The subscription is cleared if the GO or the IOX lost power or if the IOX is disconnected from the GO device.
+ * 
+ * Note, If the master switch is not enabled:
+ *          - An IOX will not able to subscribe any topic.
+ *          - The list of subscribable topics will be empty.
+ */
+
+// The ID of all the subscribable topics.
+// @exclude Includes status data IDs
+// @exclude The comment is CSV format: 1st field is the type, 2nd field is the unit, 3rd field is the extra information (if any).
+enum Topic {
+    TOPIC_UNSPECIFIED = 0;              // Invalid topic,, (DO NOT USE)
+    TOPIC_ACCEL = 1;                    // Vec3, m/s^2, To be implemented
+    TOPIC_GPS = 2;                      // Gps, Lat/Long: degrees. speed: km/h, To be implemented
+    TOPIC_BATTERY_VOLTAGE = 3;          // float, Volt, To be implemented
+    TOPIC_VIN = 4;                      // String, Unitless
+    TOPIC_GEAR = 5;             // 32-bit signed int, Unitless, -1=Reverse. 0=Neutral. 1-8:Nth gear.126=Park. 127=Drive. 129=Intermediate. 130=Unknown. 
+    TOPIC_ENGINE_SPEED = 6;             // 32-bit float, RPM
+    TOPIC_ENGINE_LOAD = 7;              // 32-bit float, %
+    TOPIC_ODOMETER = 8;                 // 32-bit float, Km
+    TOPIC_ACCEL_PEDAL_PERCENTAGE = 9;   // 32-bit float, %
+    TOPIC_COOLANT_TEMP = 10;            // 32-bit float, degC
+    TOPIC_DOC_INTAKE_GAS_TEMP = 11;     // 32-bit float, degC
+    TOPIC_DOC_OUTLET_GAS_TEMP = 12;     // 32-bit float, degC
+    TOPIC_FUELTANK1_UNITS = 13;         // 32-bit float, Litres
+    TOPIC_FUELTANK2_UNITS = 14;         // 32-bit float, Litres
+    TOPIC_FUELTANK1_PERCENT = 15;       // 32-bit float, %
+    TOPIC_FUELTANK2_PERCENT = 16;       // 32-bit float, %
+    TOPIC_STATE_OF_CHARGE = 17;         // 32-bit float, %
+    TOPIC_ENGINE_ROAD_SPEED = 18;       // 32-bit float, km/h
+    TOPIC_VEHICLE_ACTIVE = 19;          // 32-bit signed int, Unitless, 0=IgnitionOff. 1=IgnitionOn.
+    TOPIC_DRIVER_SEATBELT = 20;         // 32-bit signed int, Unitless, 0=Buckled. 1=Unblocked.
+    TOPIC_LEFT_TURN_SIGNAL = 21;        // 32-bit signed int, Unitless, 0=Off. 1=On
+    TOPIC_RIGHT_TURN_SIGNAL = 22;       // 32-bit signed int, Unitless, 0=Off. 1=On
+    TOPIC_EV_CHARGING_STATE = 23;       // 32-bit signed int, Unitless, 0=NotCharging. 1=AC charging. 2=DC charging.
+    TOPIC_PARK_BRAKE = 24;              // 32-bit signed int, Unitless, 0=Off. 1=On. 2=Error.
+}
+
+/**
+ * GO to IOX: 3nd level of a IoxFromGo message.
+ * This structure contains a response to a Subscribe-request or an Unsubscribe-request.
+ */
+message SubAck {
+    // Possible result returned from a Subscribe-request or an Unsubscribe-request.
+    enum Result {
+        // Not used; zero is never returned as a Result.
+        SUB_ACK_RESULT_UNSPECIFIED = 0;
+        // Subscription success
+        SUB_ACK_RESULT_SUCCESS = 1;
+        // Generic subscription failure
+        SUB_ACK_RESULT_FAILED = 2;
+        // Subscribe fails if an unknown topic is specified
+        SUB_ACK_RESULT_UNKNOWN_TOPIC = 3;
+        // Subscribe fails if the topic has already been subscribed to
+        SUB_ACK_RESULT_TOPIC_ALREADY_SUBBED = 4;
+        // Unsubscribe fails if the topic has not been subscribed to
+        SUB_ACK_RESULT_TOPIC_NOT_SUBBED = 5;
+        // Unsubscribe fails if the subscription belongs to another IOX.
+        SUB_ACK_RESULT_UNAVAILABLE = 6;
+        // IOX Pub/Sub is not enabled by Master Switch.
+        SUB_ACK_RESULT_DISABLED = 7;
+    }
+    Result result = 1;      // The result of a subscribe-request or an unsubscribe-request.
+    Topic topic = 2;        // The topic specified in the request.
+}
+
+/**
+ * GO to IOX: 
+ * This is part of the response to the Subscribable-list-request message.
+ * This structure contains the information of one subscribable topics.
+ */
+message TopicInfo {
+    // @exclude May be extended with metadata for each topic in the future.
+    Topic topic = 1;        // The ID of the subscribable topic.
+}
+
+/**
+ * GO to IOX: 3rd level of an IoxFromGo message. 
+ * This is a response to the Subscribed-list-request message.
+ * This structure provides the list of all the subscribed topics.
+ */
+message TopicList {
+    // An array of topics.
+    repeated Topic topics = 1;  // array of IDs, each from a subscribed topic.
+}
+
+/**
+ * GO to IOX: 3rd level of an IoxFromGo message. 
+ * This is a response to the Subscribable-list-request message.
+ * This structure contains the information of all subscribable topics.
+ */
+message TopicInfoList {
+    repeated TopicInfo topics = 1;  // array of topic information, each from a subscribable topic.
+}
+
+/**
+ * GO to IOX: 3rd level of an IoxFromGo message. 
+ * This is a response to a Clear-subscription-request.
+ */
+ message ClearSubsAck {
+    // Possible result of a Clear-subscription-request.
+    enum Result {
+        // Not used. ClearSubAck will never return a result = zero.
+        CLEAR_SUBS_ACK_RESULT_UNSPECIFIED = 0;
+        // Clear subscription succeeded
+        CLEAR_SUBS_ACK_RESULT_SUCCESS = 1;
+        // Clear subscription failed: The subscription is owned by another IOX.
+        CLEAR_SUBS_ACK_RESULT_UNAVAILABLE = 2;
+        // Clear subscription failed: Pub/Sub is not enabled by Master Switch.
+        CLEAR_SUBS_ACK_RESULT_DISABLED = 3;
+    }
+    Result result = 1;  // This is the result of a Clear-subscription-request.
+}
+
+/**
+ * GO to IOX:
+ * This structure is used for publishing the output of the accelerometer.
+ */
+ message Vec3 {
+    float x = 1;    // Output of the X-axis.
+    float y = 2;    // Output of the Y-axis.
+    float z = 3;    // Output of the Z-axis.
+}
+
+/**
+ * GO to IOX:
+ * This structure is used for publishing the output of the GPS.
+ */
+message Gps {
+    // Latitude, in degrees (+ve = north, -ve = south)
+    float latitude = 1;
+    // Longitude, in degrees (+ve = east, -ve = west)
+    float longitude = 2;
+    // Speed, in km/h
+    float speed = 3;
+    // Heading, in degrees
+    float heading = 4;
+    // Time the GPS data is sampled.
+    google.protobuf.Timestamp gps_time = 5;
+}
+
+/**
+ * GO to IOX: 3nd level of an IoxFromGo message.
+ * The Go device sends this message for each subscribed topic when an update to the status of the topic is available.
+ */
+message Publish {
+    google.protobuf.Timestamp time = 1;     // Time since 1970-01-01 00:00:00 UTC.
+    Topic topic = 2;                        // ID of the subscribed topic this message contains.
+    // The updated value of the topic.
+    oneof value {
+        bool bool_value = 3;
+        int32 int_value = 4;
+        uint32 uint_value = 5;
+        float float_value = 6;
+        // Used for VIN (17 digits)
+        string string_value = 7;
+        // Used for acceleration
+        Vec3 vec3_value = 8;
+        // Used for GPS output.
+        Gps gps_value = 9;
+    };
+}
+
+/**
+ * IOX to GO: 3rd level of an IoxToGo message.
+ * Subscribe-request: An external device sends this message to subscribe an available topic.
+ */
+message Subscribe {
+    Topic topic = 1;        // ID of the topic the IOX wishes to subscribe.
+}
+
+/**
+ * IOX to GO: 3rd level of an IoxToGo message.
+ * Unsubscribe-request: An external device sends this message to unsubscribe a topic.
+ */
+message Unsubscribe {
+    Topic topic = 1;        // ID of a subscribed topic, the IOX wishes to removed.
+}
+
+/**
+ * IOX to GO: 2nd level of an IoxToGo message.
+ * This level identifies the type of requests to the subscription.
+ */
+message PubSubToGo {
+    // Possible type of requests.
+    oneof msg {
+        // Subscribe-request: Add a topic to the subscription.
+        Subscribe sub = 1;
+        // Unsubscribe-request: Remove the topic from the subscription.
+        Unsubscribe unsub = 2;
+        // Subscribed-list-request: gps_time all subscribed topics.
+        google.protobuf.Empty list_subs = 3;
+        // Clear-subscription-request: Clear all the subscribed topics from the subscription.
+        google.protobuf.Empty clear_subs = 4;
+        // Subscribable-list-request: Get the list of all subscribable topics.
+        google.protobuf.Empty list_avail_topics = 5;
+    }
+}
+
+/**
+ * GO to IOX: 2nd level of an IoxFromGo message.
+ * This level identifies the type of information/response.
+ */
+message PubSubFromGo {
+    // Possible type of information/response the GO device sends to an external device.
+    oneof msg {
+        // Reply to sub and unsub, indicating success/failure
+        SubAck sub_ack = 1;
+        // Reply to list_subs, containing all subscribed topics
+        TopicList topic_list = 2;
+        // Reply to list_avail_topics, containing info on all supported topics
+        TopicInfoList topic_info_list = 3;
+        // Data sample published by the GO
+        Publish pub = 4;
+        // Reply to clear_subs, indicating success/failure
+        ClearSubsAck clear_subs_ack = 5;
+    }
+}
+
+/**
+ * IOX to GO: Top level of a pub-sub message.
+ * IAn IoxToGo message can only contain one PubSubToGo message.
+ */
+message IoxToGo {
+    oneof msg {
+        PubSubToGo pub_sub = 1;
+    }
+}
+
+/**
+ * GO to IOX: Top level of a pub-sub message.
+ * An IoxFromGo message can only contain one PubSubFromGo message.
+ */
+message IoxFromGo {
+    oneof msg {
+        PubSubFromGo pub_sub = 1;
+    }
+}
