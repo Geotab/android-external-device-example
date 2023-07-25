@@ -48,6 +48,7 @@ import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 
 import com.geotab.AOA.AccessoryControl.OpenStatus;
+import com.geotab.AOA.databinding.MainBinding;
 
 public class Sandbox extends Activity
 {
@@ -61,7 +62,8 @@ public class Sandbox extends Activity
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.main);
+		MainBinding binding = MainBinding.inflate(getLayoutInflater());
+		setContentView(binding.getRoot());
 
 		// Register a receiver for permission and accessory detached messages
 		IntentFilter filter = new IntentFilter(AccessoryControl.ACTION_USB_PERMISSION);
@@ -69,28 +71,11 @@ public class Sandbox extends Activity
 		registerReceiver(receiver, filter);
 
 		// Button actions
-		Button send = (Button) findViewById(R.id.Send);
-		send.setOnClickListener(new View.OnClickListener()
-		{
-			public void onClick(View v)
-			{
-				writePassthrough();
-			}
-		});
-
-		// Button actions
-		Button sendToMap = (Button) findViewById(R.id.SendToMap);
-		sendToMap.setOnClickListener(new View.OnClickListener()
-		{
-			public void onClick(View v)
-			{
-				showLocationOnMap();
-			}
-		});
+		binding.Send.setOnClickListener(v -> writePassthrough());
+		binding.SendToMap.setOnClickListener(v -> showLocationOnMap());
 
 		// Received Text View
-		TextView PassthroughReceived = (TextView) findViewById(R.id.PassthroughReceived);
-		PassthroughReceived.setMovementMethod(new ScrollingMovementMethod());
+		binding.PassthroughReceived.setMovementMethod(new ScrollingMovementMethod());
 
 		// Selectable HOS message list
 		List<String> sDispalyedList = new ArrayList<String>();
@@ -98,7 +83,7 @@ public class Sandbox extends Activity
 		{
 			sDispalyedList.add(ThirdParty.THIRD_PARTY_MESSAGE_DEFINEs[i].Name);
 		}
-		mSpinner = (Spinner) findViewById(R.id.MessageSpinner);
+		mSpinner = binding.MessageSpinner;
 		ArrayAdapter<String> SpinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, sDispalyedList);
 		SpinnerAdapter.setDropDownViewResource(android.R.layout.select_dialog_singlechoice);
 		mSpinner.setAdapter(SpinnerAdapter);
