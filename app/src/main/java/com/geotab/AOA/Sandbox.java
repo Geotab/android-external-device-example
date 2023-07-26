@@ -37,16 +37,13 @@ import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
-
 import com.geotab.AOA.AccessoryControl.OpenStatus;
 import com.geotab.AOA.databinding.MainBinding;
 
@@ -180,8 +177,14 @@ public class Sandbox extends Activity
 			}
 			else
 			{
-				// Send the data and message type directly
-				mAccessoryControl.sendThirdParty(bMessageType, abData);
+				if (bMessageType == ThirdParty.PROTOBUF_DATA_PACKET){
+					Log.d(TAG, "Tx:PROTOBUF_DATA_PACKET!");
+					// Todo: generate the corresponding IOX message!
+					//mAccessoryControl.sendThirdParty(bMessageType, abData);
+				}else{
+					// Send the data and message type directly
+					mAccessoryControl.sendThirdParty(bMessageType, abData);
+				}
 			}
 		}
 		else
