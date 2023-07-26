@@ -42,16 +42,19 @@ import android.view.Gravity;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.geotab.ioxproto.IoxMessaging;
+import com.google.protobuf.InvalidProtocolBufferException;
+
 class ThirdPartyMessage
 {
 	public String Name;
 	public byte MessageType;
 	public byte[] Command;
 
-	ThirdPartyMessage(String sName, byte bType, byte[] abCommand)
+	ThirdPartyMessage(String sName, byte messageType, byte[] abCommand)
 	{
 		Name = sName;
-		MessageType = bType;
+		MessageType = messageType;
 		Command = abCommand;
 	}
 }
@@ -81,11 +84,13 @@ public class ThirdParty
 	private static final byte MESSAGE_HANDSHAKE = 1;
 	private static final byte MESSAGE_ACK = 2;
 	private static final byte MESSAGE_GO_DEVICE_DATA = 0x21;
+	private static final byte MESSAGE_GO_TO_IOX = 0x26;
 	private static final byte MESSAGE_CONFIRMATION = (byte) 0x81;
 	private static final byte MESSAGE_STATUS_DATA = (byte) 0x80;
 	private static final byte TP_FREE_FORMAT_DATA = (byte) 0x82;
 	private static final byte TP_DEVICE_INFO_RECEIVED = (byte) 0x83;
 	private static final byte TP_HOS_ACK = (byte) 0x84;
+	static final byte PROTOBUF_DATA_PACKET = (byte) 0x8c;
 	private static final byte MESSAGE_SYNC = 0x55;
 	private static final byte[] HOS_ENHANCED_ID_WITH_ACK = new byte[] { 0x2D, 0x10, 0x00, 0x00 };
 
@@ -98,6 +103,7 @@ public class ThirdParty
 			new ThirdPartyMessage("FREE FORMAT", TP_FREE_FORMAT_DATA, null),
 			new ThirdPartyMessage("DEVICE INFO", TP_DEVICE_INFO_RECEIVED, null),
 			new ThirdPartyMessage("HOS ACK", TP_HOS_ACK, null),
+			new ThirdPartyMessage("PROTOBUF PUB/SUB", PROTOBUF_DATA_PACKET, null),
 	};
 
 	private final Lock mLock = new ReentrantLock();
@@ -283,23 +289,30 @@ public class ThirdParty
 	public void RxMessage(byte[] abData)
 	{
 		// Check length
-		if (abData == null || abData.length < 6)
+		if (abData == null || abData.length < 6) {
+			Log.e(TAG, "RxMessage: Bad Data length!");
 			return;
+		}
 
 		// Check structure
 		byte bSTX = abData[0];
 		byte bLength = abData[2];
 		byte bETX = abData[abData.length - 1];
 
-		if (bSTX != 0x02 || bETX != 0x03)
+		if (bSTX != 0x02 || bETX != 0x03){
+			Log.e(TAG, "RxMessage: Bad Data format!");
 			return;
+		}
+
 
 		// Check checksum
 		byte[] abChecksum = new byte[] { abData[abData.length - 3], abData[abData.length - 2] };
 		byte[] abCalcChecksum = CalcChecksum(abData, bLength + 3);
 
-		if (!Arrays.equals(abChecksum, abCalcChecksum))
+		if (!Arrays.equals(abChecksum, abCalcChecksum)) {
+			Log.e(TAG, "RxMessage: Bad Data Checksum!");
 			return;
+		}
 
 		byte bType = abData[1];
 
@@ -338,6 +351,14 @@ public class ThirdParty
 				mabMessage = BuildMessage(TP_HOS_ACK, abAck);
 				mAccessoryControl.write(mabMessage);
 				break;
+			case MESSAGE_GO_TO_IOX:
+				try {
+					IoxMessaging.IoxFromGo data = IoxMessaging.IoxFromGo.parseFrom(abData);
+				} catch (InvalidProtocolBufferException e) {
+					Log.e(TAG, "RxMessage: Failed to decode the protobuf data\n"
+							+ e.getMessage());
+				}
+				break;
 		}
 	}
 
@@ -353,7 +374,7 @@ public class ThirdParty
 		System.arraycopy(abData, 0, abMessage, 3, abData.length);
 
 		int iLengthUpToChecksum = abData.length + 3;
-		byte abCalcChecksum[] = CalcChecksum(abMessage, iLengthUpToChecksum);
+		byte[] abCalcChecksum = CalcChecksum(abMessage, iLengthUpToChecksum);
 		System.arraycopy(abCalcChecksum, 0, abMessage, iLengthUpToChecksum, 2);
 
 		abMessage[abMessage.length - 1] = 0x03;
