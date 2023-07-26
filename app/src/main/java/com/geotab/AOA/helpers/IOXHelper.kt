@@ -1,19 +1,16 @@
 package com.geotab.AOA.helpers
 
-import com.geotab.ioxproto.IoxMessaging
+import com.geotab.ioxproto.IoxMessaging.IoxToGo
+import com.geotab.ioxproto.IoxMessaging.PubSubToGo
+import com.google.protobuf.Empty
 
 class IOXHelper {
     companion object{
-        fun getIOXTopicListMessage(): ByteArray{
-            val ioxMessage = IoxMessaging.IoxToGo.newBuilder().setPubSub(
-                IoxMessaging.PubSubToGo
-                    .newBuilder()
-                    .clearListAvailTopics()
-                    .build()
-            )
+        fun getIOXTopicListMessage(): IoxToGo {
+            return IoxToGo
+                .newBuilder()
+                .setPubSub(PubSubToGo.newBuilder().setListAvailTopics(Empty.getDefaultInstance()))
                 .build()
-                .toByteArray()
-            return ioxMessage
         }
 
         fun ByteArray.toHexString() = asUByteArray().joinToString("") {
