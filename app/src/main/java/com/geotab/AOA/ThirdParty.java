@@ -353,7 +353,11 @@ public class ThirdParty
 				break;
 			case MESSAGE_GO_TO_IOX:
 				try {
-					IoxMessaging.IoxFromGo data = IoxMessaging.IoxFromGo.parseFrom(abData);
+					//Todo Remove extra data from abData properly and test it!
+					byte[] mDate = new byte[abData.length-6];
+					System.arraycopy(abData, 3, mDate, 0, mDate.length);
+					IoxMessaging.IoxFromGo data = IoxMessaging.IoxFromGo.parseFrom(mDate);
+					Log.d(TAG, "RxMessage: MESSAGE_GO_TO_IOX\n"+data.toString());
 				} catch (InvalidProtocolBufferException e) {
 					Log.e(TAG, "RxMessage: Failed to decode the protobuf data\n"
 							+ e.getMessage());
