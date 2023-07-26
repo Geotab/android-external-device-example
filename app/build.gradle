@@ -1,4 +1,8 @@
-apply plugin: 'com.android.application'
+plugins {
+    id "com.android.application"
+    id "com.google.protobuf" version "0.9.4"
+}
+
 android {
     compileSdkVersion 33
     defaultConfig {
@@ -22,7 +26,38 @@ android {
     buildFeatures {
         viewBinding true
     }
+    sourceSets {
+        main {
+            java {
+                srcDirs += 'build/generated/source/proto/main/java'
+            }
+            kotlin {
+                srcDirs += 'build/generated/source/proto/main/kotlin'
+            }
+            proto {
+                srcDir 'src/main/proto' // default value
+            }
+        }
+    }
+}
+
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.8.0'
+    }
+    generateProtoTasks {
+        all().configureEach { task ->
+            task.builtins {
+                java {
+                    option "lite"
+                }
+            }
+        }
+    }
 }
 
 dependencies {
+    // You need to depend on the lite runtime library, not protobuf-java
+    implementation 'com.google.protobuf:protobuf-javalite:3.8.0'
 }
