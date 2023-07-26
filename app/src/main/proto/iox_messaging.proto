@@ -34,7 +34,7 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
-
+package com.geotab.ioxproto;
 /**
  * This Proto file defines message payloads for the Third party Message Type 0x8C (Protobuf Data Packet from IOX to GO) and Message Type 0x26 (Protobuf Data Packet from GO to IOX).
  * The protobufs defined here follows a simple pub/sub protocol, where a third party IOX device can subscribe to one of the supported TOPICs (enum Topic) 
