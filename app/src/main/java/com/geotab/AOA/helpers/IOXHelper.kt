@@ -5,7 +5,7 @@ import com.geotab.ioxproto.IoxMessaging.PubSubToGo
 import com.google.protobuf.Empty
 
 class IOXHelper {
-    companion object{
+    companion object {
         fun getIOXTopicListMessage(): IoxToGo {
             return IoxToGo
                 .newBuilder()
