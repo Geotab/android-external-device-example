@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="select_interface_type">Select interface Type</string>
+    <string name="interface_mode">Interface Mode</string>
     <string name="get_iox_topics">Get IOX Topics</string>
 </resources>
