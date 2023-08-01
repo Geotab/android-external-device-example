@@ -272,6 +272,7 @@ public class ThirdParty
 	// Encapsulate a message to be sent
 	public void TxMessage(byte bType, byte[] abData)
 	{
+		Log.d(TAG, "TxMessage:" +bType + ", abData.length:"+abData.length);
 		mLock.lock();
 		try
 		{
@@ -357,7 +358,7 @@ public class ThirdParty
 					byte[] mDate = new byte[abData.length-6];
 					System.arraycopy(abData, 3, mDate, 0, mDate.length);
 					IoxMessaging.IoxFromGo data = IoxMessaging.IoxFromGo.parseFrom(mDate);
-					Log.d(TAG, "RxMessage: MESSAGE_GO_TO_IOX\n"+data.toString());
+					Log.d(TAG, "RxMessage: MESSAGE_GO_TO_IOX MsgCase:"+data.getMsgCase() + "\n"+data.toString());
 				} catch (InvalidProtocolBufferException e) {
 					Log.e(TAG, "RxMessage: Failed to decode the protobuf data\n"
 							+ e.getMessage());
@@ -521,40 +522,40 @@ public class ThirdParty
 				HOSData dataHOS = getHOSData();
 				TextView textView;
 
-				textView = (TextView) activity.findViewById(R.id.DateTime);
+				textView = activity.findViewById(R.id.DateTime);
 				textView.setText(dataHOS.sDateTime);
 
-				textView = (TextView) activity.findViewById(R.id.Latitude);
+				textView = activity.findViewById(R.id.Latitude);
 				textView.setText(Float.toString(dataHOS.Latitude));
 
-				textView = (TextView) activity.findViewById(R.id.Logitude);
+				textView = activity.findViewById(R.id.Logitude);
 				textView.setText(Float.toString(dataHOS.Logitude));
 
-				textView = (TextView) activity.findViewById(R.id.Speed);
+				textView = activity.findViewById(R.id.Speed);
 				textView.setText(Integer.toString(dataHOS.iRoadSpeed));
 
-				textView = (TextView) activity.findViewById(R.id.RPM);
+				textView = activity.findViewById(R.id.RPM);
 				textView.setText(Integer.toString(dataHOS.iRPM));
 
-				textView = (TextView) activity.findViewById(R.id.Odometer);
+				textView = activity.findViewById(R.id.Odometer);
 				textView.setText(Integer.toString(dataHOS.iOdometer));
 
-				textView = (TextView) activity.findViewById(R.id.Status);
+				textView = activity.findViewById(R.id.Status);
 				textView.setText(dataHOS.sStatus);
 
-				textView = (TextView) activity.findViewById(R.id.TripOdometer);
+				textView = activity.findViewById(R.id.TripOdometer);
 				textView.setText(Integer.toString(dataHOS.iTripOdometer));
 
-				textView = (TextView) activity.findViewById(R.id.EngineHours);
+				textView = activity.findViewById(R.id.EngineHours);
 				textView.setText(Integer.toString(dataHOS.iEngineHours));
 
-				textView = (TextView) activity.findViewById(R.id.TripDuration);
+				textView = activity.findViewById(R.id.TripDuration);
 				textView.setText(Integer.toString(dataHOS.iTripDuration));
 
-				textView = (TextView) activity.findViewById(R.id.VehicleId);
+				textView = activity.findViewById(R.id.VehicleId);
 				textView.setText(Integer.toString(dataHOS.iVehicleId));
 
-				textView = (TextView) activity.findViewById(R.id.DriverId);
+				textView = activity.findViewById(R.id.DriverId);
 				textView.setText(Integer.toString(dataHOS.iDriverId));
 			}
 		});
@@ -572,7 +573,6 @@ public class ThirdParty
 			public void run()
 			{
 				Toast DisplayMessage = Toast.makeText(mContext, sToast, Toast.LENGTH_SHORT);
-				DisplayMessage.setGravity(Gravity.CENTER_VERTICAL | Gravity.BOTTOM, 0, 0);
 				DisplayMessage.show();
 			}
 		});
