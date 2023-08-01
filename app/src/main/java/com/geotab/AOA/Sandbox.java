@@ -52,6 +52,7 @@ import com.geotab.AOA.databinding.MainBinding;
 import com.geotab.AOA.helpers.IOXHelper;
 import com.geotab.ioxproto.IoxMessaging;
 
+
 public class Sandbox extends AppCompatActivity  implements IOXListener
 {
 	private Spinner mSpinner;
@@ -59,12 +60,13 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 	private static final String TAG = Sandbox.class.getSimpleName();	// Used for error logging
 	ArrayList<TopicsDataModel> dataModels;
 	private static TopicsAdapter adapter;
+	MainBinding binding = null;
 	// Called when the activity is initialized
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		MainBinding binding = MainBinding.inflate(getLayoutInflater());
+		binding = MainBinding.inflate(getLayoutInflater());
 		setContentView(binding.getRoot());
 
 		// Register a receiver for permission and accessory detached messages
@@ -108,7 +110,7 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 				Log.d(TAG, "setOnItemClickListener onNothingSelected!");
 			}});
 
-		mAccessoryControl = new AccessoryControl(this);
+		mAccessoryControl = new AccessoryControl(this, this);
 		dataModels= new ArrayList<>();
 		try {
 			for (IoxMessaging.Topic topic : IoxMessaging.Topic.values()) {
@@ -147,7 +149,7 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 	public void onResume()
 	{
 		super.onResume();
-		OpenStatus status = mAccessoryControl.open();
+		OpenStatus status = mAccessoryControl.open(this);
 		if (status == OpenStatus.CONNECTED)
 			showToast("Connected (OnResume)");
 		else if (status != OpenStatus.REQUESTING_PERMISSION && status != OpenStatus.NO_ACCESSORY)
@@ -179,7 +181,7 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 				{
 					Log.i(TAG, "Permission Granted");
 
-					OpenStatus status = mAccessoryControl.open(accessory);
+					OpenStatus status = mAccessoryControl.open(Sandbox.this, accessory);
 					if (status == OpenStatus.CONNECTED)
 						showToast("Connected (onReceive)");
 					else
@@ -303,6 +305,39 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 
 	@Override
 	public void onIOXReceived(@NonNull IoxMessaging.IoxFromGo message) {
+		Log.d(TAG, "onIOXReceived:  message:"
+				+message.toString());
+	}
 
+	@Override
+	public void onStatusUpdate(@NonNull String message) {
+		Toast DisplayMessage = Toast.makeText(this, message, Toast.LENGTH_SHORT);
+		DisplayMessage.show();
+	}
+
+	@Override
+	public void onUpdateHOSText(@NonNull HOSData dataHOS) {
+		if(binding != null){
+			binding.DateTime.setText(dataHOS.sDateTime);
+			binding.Latitude.setText(Float.toString(dataHOS.Latitude));
+			binding.Logitude.setText(Float.toString(dataHOS.Logitude));
+			binding.Speed.setText(Integer.toString(dataHOS.iRoadSpeed));
+			binding.RPM.setText(Integer.toString(dataHOS.iRPM));
+			binding.Odometer.setText(Integer.toString(dataHOS.iOdometer));
+			binding.Status.setText(dataHOS.sStatus);
+			binding.TripOdometer.setText(Integer.toString(dataHOS.iTripOdometer));
+			binding.EngineHours.setText(Integer.toString(dataHOS.iEngineHours));
+			binding.TripDuration.setText(Integer.toString(dataHOS.iTripDuration));
+			binding.VehicleId.setText(Integer.toString(dataHOS.iVehicleId));
+			binding.DriverId.setText(Integer.toString(dataHOS.iDriverId));
+
+		}
+	}
+
+	@Override
+	public void onPassthroughReceived(@NonNull String message) {
+		if(binding != null){
+			binding.PassthroughReceived.setText(message);
+		}
 	}
 }
