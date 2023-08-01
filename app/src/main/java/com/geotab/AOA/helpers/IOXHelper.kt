@@ -15,10 +15,12 @@ class IOXHelper {
                 .build()
         }
 
-        public fun getIOXSubscribeToGPSMessage(): IoxToGo {
+        public fun getIOXSubscribeToTopicMessage(topic : Int): IoxToGo {
             return IoxToGo.newBuilder()
-                .setPubSub(PubSubToGo.newBuilder().setSub(Subscribe.newBuilder().setTopicValue(
-                    IoxMessaging.Topic.TOPIC_GEAR_VALUE)))
+                .setPubSub(
+                    PubSubToGo
+                        .newBuilder()
+                        .setSub(Subscribe.newBuilder().setTopicValue(topic)))
                 .build()
         }
 
