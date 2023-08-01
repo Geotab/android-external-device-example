@@ -1,6 +1,5 @@
 package com.geotab.AOA.helpers
 
-import com.geotab.ioxproto.IoxMessaging
 import com.geotab.ioxproto.IoxMessaging.IoxToGo
 import com.geotab.ioxproto.IoxMessaging.PubSubToGo
 import com.geotab.ioxproto.IoxMessaging.Subscribe
@@ -9,13 +8,19 @@ import com.google.protobuf.Empty
 class IOXHelper {
 
     companion object {
-        public fun getIOXTopicListMessage(): IoxToGo {
+        fun getIOXTopicListMessage(): IoxToGo {
             return IoxToGo.newBuilder()
                 .setPubSub(PubSubToGo.newBuilder().setListAvailTopics(Empty.getDefaultInstance()))
                 .build()
         }
 
-        public fun getIOXSubscribeToTopicMessage(topic : Int): IoxToGo {
+        fun getIOXSubscribedTopicListMessage(): IoxToGo {
+            return IoxToGo.newBuilder()
+                .setPubSub(PubSubToGo.newBuilder().setListSubs(Empty.getDefaultInstance()))
+                .build()
+        }
+
+        fun getIOXSubscribeToTopicMessage(topic : Int): IoxToGo {
             return IoxToGo.newBuilder()
                 .setPubSub(
                     PubSubToGo
