@@ -71,4 +71,5 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.10.1'
     implementation 'com.google.protobuf:protobuf-javalite:3.8.0'
     implementation 'org.testng:testng:7.4.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
 }
