@@ -42,18 +42,6 @@ import android.util.Log;
 import com.geotab.ioxproto.IoxMessaging;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-class ThirdPartyMessage {
-    public String Name;
-    public byte MessageType;
-    public byte[] Command;
-
-    ThirdPartyMessage(String sName, byte messageType, byte[] abCommand) {
-        Name = sName;
-        MessageType = messageType;
-        Command = abCommand;
-    }
-}
-
 public class ThirdParty {
     private static final String TAG = ThirdParty.class.getSimpleName();    // Used for error logging
 
