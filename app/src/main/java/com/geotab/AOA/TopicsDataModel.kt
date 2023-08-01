@@ -1,37 +1,46 @@
-package com.geotab.AOA;
+package com.geotab.AOA
 
-import java.util.Objects;
+import android.graphics.Color
+import android.graphics.Typeface
+import java.util.Objects
 
-public class TopicsDataModel {
-    public String name;
-    public int id = 0;
-    public boolean subscribed =false;
+class TopicsDataModel(var name: String,
+                      var id: Int,
+                      var subscribed: SubscriptionStatus = SubscriptionStatus.UNSUBSCRIBED) {
 
-    public TopicsDataModel(String name, int id, boolean subscribed) {
-        this.name=name;
-        this.id=id;
-        this.subscribed=subscribed;
+    var dataText: String = ""
+    var counter = 0
+    constructor(name: String, id: Int,): this (name, id, SubscriptionStatus.UNSUBSCRIBED)
+
+    enum class SubscriptionStatus(val statusText: String, val color: Int, val typeface: Int) {
+        SUBSCRIBED("Subscribed", Color.argb(255, 0, 150, 0),
+            Typeface.BOLD),
+        UNSUBSCRIBED("Unsubscribed", Color.RED,
+            Typeface.ITALIC),
+        SUBSCRIBING("Subscribing", Color.argb(255, 150, 150, 0),
+            Typeface.ITALIC)
     }
 
-    @Override
-    public String toString() {
+    fun incrementCounter() {
+        counter++
+    }
+
+    override fun toString(): String {
         return "TopicsDataModel{" +
                 "name='" + name + '\'' +
                 ", id=" + id +
                 ", subscribed=" + subscribed +
-                '}';
+                '}'
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        TopicsDataModel that = (TopicsDataModel) o;
-        return id == that.id && subscribed == that.subscribed && Objects.equals(name, that.name);
+    override fun equals(o: Any?): Boolean {
+        if (this === o) return true
+        if (o == null || javaClass != o.javaClass) return false
+        val that = o as TopicsDataModel
+        return id == that.id && name == that.name
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, id, subscribed);
+    override fun hashCode(): Int {
+        return Objects.hash(name, id, subscribed)
     }
 }
