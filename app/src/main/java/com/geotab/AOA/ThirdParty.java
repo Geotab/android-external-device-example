@@ -115,14 +115,15 @@ public class ThirdParty
 	private AccessoryControl mAccessoryControl;
 	private Context mContext;
 	private StateMachine mStateMachine;
-	Handler mHandler = null;
+	private final Handler mHandler;
+	private IOXListener mIOXListener;
 	private enum State
 	{
 		SEND_SYNC, WAIT_FOR_HANDSHAKE, SEND_CONFIRMATION, PRE_IDLE, IDLE, WAIT_FOR_ACK
 	}
 
 	// Constructor
-	public ThirdParty(AccessoryControl accessory, Context context)
+	public ThirdParty(AccessoryControl accessory, Context context, IOXListener ioxListener)
 	{
 		mfHandshakeReceived = false;
 		mfAckReceived = false;
@@ -132,6 +133,7 @@ public class ThirdParty
 		mContext = context;						// Context is needed for showToastFromThread
 
 		mHandler = new Handler(context.getMainLooper());
+		mIOXListener = ioxListener;
 		mStateMachine = new StateMachine();
 		new Thread(mStateMachine).start();		// Run as a separate thread
 	}
@@ -355,11 +357,16 @@ public class ThirdParty
 				break;
 			case MESSAGE_GO_TO_IOX:
 				try {
-					//Todo Remove extra data from abData properly and test it!
 					byte[] mDate = new byte[abData.length-6];
 					System.arraycopy(abData, 3, mDate, 0, mDate.length);
-					IoxMessaging.IoxFromGo data = IoxMessaging.IoxFromGo.parseFrom(mDate);
-					Log.d(TAG, "RxMessage: MESSAGE_GO_TO_IOX MsgCase:"+data.getMsgCase() + "\n"+data.toString());
+					IoxMessaging.IoxFromGo ioxFromGoMsg = IoxMessaging.IoxFromGo.parseFrom(mDate);
+					Log.d(TAG, "RxMessage: MESSAGE_GO_TO_IOX MsgCase:"
+							+ioxFromGoMsg.getMsgCase());
+					if (mIOXListener !=null && mHandler !=null){
+						mHandler.post(()->{
+							mIOXListener.onIOXReceived(ioxFromGoMsg);
+						});
+					}
 				} catch (InvalidProtocolBufferException e) {
 					Log.e(TAG, "RxMessage: Failed to decode the protobuf data\n"
 							+ e.getMessage());
