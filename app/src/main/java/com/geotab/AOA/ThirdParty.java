@@ -35,12 +35,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
 import android.util.Log;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.geotab.ioxproto.IoxMessaging;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -57,22 +54,6 @@ class ThirdPartyMessage
 		MessageType = messageType;
 		Command = abCommand;
 	}
-}
-
-class HOSData
-{
-	public String sDateTime;
-	public float Latitude;
-	public float Logitude;
-	public int iRoadSpeed;
-	public int iRPM;
-	public int iOdometer;
-	public String sStatus;
-	public int iTripOdometer;
-	public int iEngineHours;
-	public int iTripDuration;
-	public int iVehicleId;
-	public int iDriverId;
 }
 
 public class ThirdParty
@@ -113,7 +94,6 @@ public class ThirdParty
 	private boolean mfAckReceived, mfHandshakeReceived, mfMessageToSend;
 
 	private AccessoryControl mAccessoryControl;
-	private Context mContext;
 	private StateMachine mStateMachine;
 	private final Handler mHandler;
 	private IOXListener mIOXListener;
@@ -128,10 +108,7 @@ public class ThirdParty
 		mfHandshakeReceived = false;
 		mfAckReceived = false;
 		mfMessageToSend = false;
-
 		mAccessoryControl = accessory;
-		mContext = context;						// Context is needed for showToastFromThread
-
 		mHandler = new Handler(context.getMainLooper());
 		mIOXListener = ioxListener;
 		mStateMachine = new StateMachine();
@@ -182,7 +159,7 @@ public class ThirdParty
 						{
 							byte[] abMessage = BuildMessage(MESSAGE_CONFIRMATION, HOS_ENHANCED_ID_WITH_ACK);
 							mAccessoryControl.write(abMessage);
-							showToastFromThread("HOS Connected");
+							showStatusMsg("HOS Connected");
 							eState = State.PRE_IDLE;
 							break;
 						}
@@ -521,63 +498,17 @@ public class ThirdParty
 	// Update text on the UI thread from another thread
 	private void updateHOSTextFromThread()
 	{
-		final Activity activity = (Activity) mContext;
-
-		activity.runOnUiThread(new Runnable()
-		{
-			public void run()
-			{
-				HOSData dataHOS = getHOSData();
-				TextView textView;
-
-				textView = activity.findViewById(R.id.DateTime);
-				textView.setText(dataHOS.sDateTime);
-
-				textView = activity.findViewById(R.id.Latitude);
-				textView.setText(Float.toString(dataHOS.Latitude));
-
-				textView = activity.findViewById(R.id.Logitude);
-				textView.setText(Float.toString(dataHOS.Logitude));
-
-				textView = activity.findViewById(R.id.Speed);
-				textView.setText(Integer.toString(dataHOS.iRoadSpeed));
-
-				textView = activity.findViewById(R.id.RPM);
-				textView.setText(Integer.toString(dataHOS.iRPM));
-
-				textView = activity.findViewById(R.id.Odometer);
-				textView.setText(Integer.toString(dataHOS.iOdometer));
-
-				textView = activity.findViewById(R.id.Status);
-				textView.setText(dataHOS.sStatus);
-
-				textView = activity.findViewById(R.id.TripOdometer);
-				textView.setText(Integer.toString(dataHOS.iTripOdometer));
-
-				textView = activity.findViewById(R.id.EngineHours);
-				textView.setText(Integer.toString(dataHOS.iEngineHours));
-
-				textView = activity.findViewById(R.id.TripDuration);
-				textView.setText(Integer.toString(dataHOS.iTripDuration));
-
-				textView = activity.findViewById(R.id.VehicleId);
-				textView.setText(Integer.toString(dataHOS.iVehicleId));
-
-				textView = activity.findViewById(R.id.DriverId);
-				textView.setText(Integer.toString(dataHOS.iDriverId));
-			}
-		});
+		HOSData dataHOS = getHOSData();
+		if (mHandler!=null && mIOXListener !=null){
+			mHandler.post(()-> mIOXListener.onUpdateHOSText(dataHOS));
+		}
 	}
 
-	// Update text on the UI thread from another calling thread
-	private void showToastFromThread(final String sToast)
+	private void showStatusMsg(final String msg)
 	{
-		Log.i(TAG, sToast);
-		if (mHandler!=null){
-			mHandler.post(() -> {
-				Toast DisplayMessage = Toast.makeText(mContext, sToast, Toast.LENGTH_SHORT);
-				DisplayMessage.show();
-			});
+		Log.i(TAG, msg);
+		if (mHandler!=null && mIOXListener !=null){
+			mHandler.post(()-> mIOXListener.onStatusUpdate(msg));
 		}
 	}
 }
