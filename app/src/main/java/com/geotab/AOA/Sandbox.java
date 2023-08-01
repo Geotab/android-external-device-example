@@ -290,9 +290,9 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 	private void showLocationOnMap()
 	{		
 		TextView textView;
-		textView = (TextView) findViewById(R.id.Latitude);
+		textView = findViewById(R.id.Latitude);
 		String sLatitude = textView.getText().toString();
-		textView = (TextView) findViewById(R.id.Logitude);
+		textView = findViewById(R.id.Logitude);
 		String sLogitude = textView.getText().toString();
 				
 		// Pass the location to Google maps
