@@ -3,7 +3,7 @@ package com.geotab.AOA;
 public class HOSData {
     public String sDateTime;
     public float Latitude;
-    public float Logitude;
+    public float Longitude;
     public int iRoadSpeed;
     public int iRPM;
     public int iOdometer;
