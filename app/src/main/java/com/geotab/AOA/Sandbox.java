@@ -125,9 +125,11 @@ public class Sandbox extends Activity
 			TopicsDataModel dataModel= dataModels.get(position);
 			Log.d(TAG, "onItemClick: "+dataModel);
 		});
-		binding.btnIoxTopics.setOnClickListener(v -> {writePassthrough();});
+		binding.btnIoxTopics.setOnClickListener(v -> protoGetAvailableTopics());
+		binding.btnGetSubs.setOnClickListener(v ->
+				protoGetSubscribedTopics());
 		binding.btnSubGps.setOnClickListener(v ->
-				subscribeToTopic(IoxMessaging.Topic.TOPIC_GEAR_VALUE));
+				protoBufSubscribeToTopic(IoxMessaging.Topic.TOPIC_GEAR_VALUE));
 	}
 
 	// Runs when the activity goes to the background
@@ -217,22 +219,7 @@ public class Sandbox extends Activity
 			}
 			else
 			{
-				if (bMessageType == ThirdParty.PROTOBUF_DATA_PACKET){
-					Log.d(TAG, "Tx:PROTOBUF_DATA_PACKET!");
-					byte[] ioxMessage = IOXHelper.Companion.getIOXTopicListMessage().toByteArray();
-//							IoxMessaging.IoxToGo.newBuilder().setPubSub(
-//									IoxMessaging.PubSubToGo
-//											.newBuilder()
-//											.clearListAvailTopics()
-//											.build())
-//							.build()
-//							.toByteArray();
-					// Todo: generate the corresponding IOX message!
-					byte[] abMessage = new byte[ioxMessage.length];
-					System.arraycopy(ioxMessage, 0, abMessage, 0, ioxMessage.length);
-					//System.arraycopy(ioxMessage, 0, abMessage, abCommand.length, ioxMessage.length);
-					mAccessoryControl.sendThirdParty(bMessageType, abMessage);
-				}else{
+				if (bMessageType != ThirdParty.PROTOBUF_DATA_PACKET){
 					// Send the data and message type directly
 					mAccessoryControl.sendThirdParty(bMessageType, abData);
 				}
@@ -248,8 +235,23 @@ public class Sandbox extends Activity
 		}
 	}
 
-	void subscribeToTopic(int topic){
+
+	void protoGetSubscribedTopics(){
+		byte[] ioxMessage = IOXHelper.Companion.getIOXSubscribedTopicListMessage().toByteArray();
+		sendThirdPartyProtoBuf(ioxMessage);
+	}
+
+	void protoGetAvailableTopics(){
+		byte[] ioxMessage = IOXHelper.Companion.getIOXTopicListMessage().toByteArray();
+		sendThirdPartyProtoBuf(ioxMessage);
+	}
+
+	void protoBufSubscribeToTopic(int topic){
 		byte[] ioxMessage = IOXHelper.Companion.getIOXSubscribeToTopicMessage(topic).toByteArray();
+		sendThirdPartyProtoBuf(ioxMessage);
+	}
+
+	void sendThirdPartyProtoBuf(byte[] ioxMessage){
 		byte[] abMessage = new byte[ioxMessage.length];
 		System.arraycopy(ioxMessage, 0, abMessage, 0, ioxMessage.length);
 		mAccessoryControl.sendThirdParty(ThirdParty.PROTOBUF_DATA_PACKET, abMessage);
