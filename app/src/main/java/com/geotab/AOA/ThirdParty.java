@@ -83,7 +83,7 @@ public class ThirdParty {
     private final Handler mHandler;
     private IOXListener mIOXListener;
 
-    private enum State {
+    public enum State {
         SEND_SYNC, WAIT_FOR_HANDSHAKE, SEND_CONFIRMATION, PRE_IDLE, IDLE, WAIT_FOR_ACK
     }
 
@@ -111,6 +111,7 @@ public class ThirdParty {
                 mLock.lock();        // The lock is needed for await and atomic access to flags/buffers
 
                 try {
+                    notifyStateChanged(eState);
                     switch (eState) {
                         case SEND_SYNC: {
                             byte[] abMessage = new byte[]{MESSAGE_SYNC};
@@ -132,7 +133,6 @@ public class ThirdParty {
                         case SEND_CONFIRMATION: {
                             byte[] abMessage = BuildMessage(MESSAGE_CONFIRMATION, HOS_ENHANCED_ID_WITH_ACK);
                             mAccessoryControl.write(abMessage);
-                            showStatusMsg("HOS Connected");
                             eState = State.PRE_IDLE;
                             break;
                         }
@@ -350,7 +350,7 @@ public class ThirdParty {
             System.arraycopy(abData, 11, abLogitude, 0, abLogitude.length);
             abConvert = ByteBuffer.wrap(abLogitude).order(java.nio.ByteOrder.LITTLE_ENDIAN);
             int iLogitude = abConvert.getInt();
-            mHOSdata.Logitude = (float) iLogitude / 10000000;    // (Units given in 10^-7)
+            mHOSdata.Longitude = (float) iLogitude / 10000000;    // (Units given in 10^-7)
 
             mHOSdata.iRoadSpeed = abData[15];
 
@@ -443,6 +443,13 @@ public class ThirdParty {
         Log.i(TAG, msg);
         if (mHandler != null && mIOXListener != null) {
             mHandler.post(() -> mIOXListener.onStatusUpdate(msg));
+        }
+    }
+
+    private void notifyStateChanged(ThirdParty.State state) {
+        Log.i(TAG, "notifyStateChanged " + state.name());
+        if (mHandler != null && mIOXListener != null) {
+            mHandler.post(() -> mIOXListener.onIOXStateChanged(state));
         }
     }
 }
