@@ -27,7 +27,7 @@ package com.geotab.AOA;
 import java.util.ArrayList;
 import java.util.List;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -45,12 +45,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+
 import com.geotab.AOA.AccessoryControl.OpenStatus;
 import com.geotab.AOA.databinding.MainBinding;
 import com.geotab.AOA.helpers.IOXHelper;
 import com.geotab.ioxproto.IoxMessaging;
 
-public class Sandbox extends Activity
+public class Sandbox extends AppCompatActivity
 {
 	private Spinner mSpinner;
 	private AccessoryControl mAccessoryControl;
@@ -147,9 +148,9 @@ public class Sandbox extends Activity
 		super.onResume();
 		OpenStatus status = mAccessoryControl.open();
 		if (status == OpenStatus.CONNECTED)
-			showToastFromThread("Connected (OnResume)");
+			showToast("Connected (OnResume)");
 		else if (status != OpenStatus.REQUESTING_PERMISSION && status != OpenStatus.NO_ACCESSORY)
-			showToastFromThread("Error: " + status);
+			showToast("Error: " + status);
 	}
 
 	// Runs as the last call before the activity is shutdown
@@ -179,9 +180,9 @@ public class Sandbox extends Activity
 
 					OpenStatus status = mAccessoryControl.open(accessory);
 					if (status == OpenStatus.CONNECTED)
-						showToastFromThread("Connected (onReceive)");
+						showToast("Connected (onReceive)");
 					else
-						showToastFromThread("Error: " + status);
+						showToast("Error: " + status);
 				}
 				else
 				{
@@ -190,7 +191,7 @@ public class Sandbox extends Activity
 			}
 			else if (UsbManager.ACTION_USB_ACCESSORY_DETACHED.equals(action))
 			{
-				showToastFromThread("Detached");
+				showToast("Detached");
 				mAccessoryControl.close();
 			}
 		}
@@ -271,24 +272,17 @@ public class Sandbox extends Activity
 	}
 
 	// -----------------------------------------------------------------------------
-	// Function : showToastFromThread
-	// Purpose : Run a toast message on the UI thread from another calling thread
+	// Function : showToast
+	// Purpose : Run a toast message.
 	// Parameters : [I] toast: The string to display
 	// Return : None
 	// Notes : None
 	// -----------------------------------------------------------------------------
-	public void showToastFromThread(final String sToast)
+	public void showToast(final String sToast)
 	{
 		Log.i(TAG, sToast);
-
-		runOnUiThread(new Runnable()
-		{
-			public void run()
-			{
-				Toast DisplayMessage = Toast.makeText(getApplicationContext(), sToast, Toast.LENGTH_SHORT);
-				DisplayMessage.show();
-			}
-		});
+		Toast DisplayMessage = Toast.makeText(getApplicationContext(), sToast, Toast.LENGTH_SHORT);
+		DisplayMessage.show();
 	}
 
 	// Displays the set location on Google maps
@@ -305,4 +299,5 @@ public class Sandbox extends Activity
 		Intent sendLocationToMap = new Intent(Intent.ACTION_VIEW, Uri.parse(geoCode));
 		startActivity(sendLocationToMap);
 	}
+
 }
