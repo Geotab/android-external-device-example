@@ -235,7 +235,7 @@ public class AccessoryControl {
                         mThirdParty.RxMessage(abMessage);
 
                         StringBuffer sDisplay = convertToString(abMessage);
-                        updateTextOnUI(sDisplay.toString());
+                        updatePassthroughText(sDisplay.toString());
                     }
                 }
             } catch (IOException e) {
@@ -292,8 +292,7 @@ public class AccessoryControl {
     }
 
     // Update text on the UI thread from another calling thread
-    private void updateTextOnUI(final String sDisplay) {
-        Log.i(TAG, sDisplay);
+    private void updatePassthroughText(final String sDisplay) {
         if (mHandler != null && mIOXListener != null) {
             mHandler.post(() -> mIOXListener.onPassthroughReceived(sDisplay));
         }
