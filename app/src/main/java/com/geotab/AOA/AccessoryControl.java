@@ -65,8 +65,8 @@ public class AccessoryControl
 
 	private boolean mfPermissionRequested, mfConnectionOpen;
 
-	private UsbManager mUSBManager;
-	private Context mContext;
+	private final UsbManager mUSBManager;
+	private final Context mContext;
 	private ParcelFileDescriptor mParcelFileDescriptor;
 	private FileOutputStream mOutputStream;
 	private FileInputStream mInputStream;
@@ -102,7 +102,7 @@ public class AccessoryControl
 			{
 				Log.i(TAG, "Requesting USB permission");
 
-				PendingIntent permissionIntent = PendingIntent.getBroadcast(mContext, 0, new Intent(ACTION_USB_PERMISSION), 0);
+				PendingIntent permissionIntent = PendingIntent.getBroadcast(mContext, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
 				mUSBManager.requestPermission(accList[0], permissionIntent);
 				mfPermissionRequested = true;
 
@@ -240,7 +240,7 @@ public class AccessoryControl
 	// A new thread that receives messages from the accessory
 	private class Receiver implements Runnable
 	{
-		private AtomicBoolean fRunning = new AtomicBoolean(true);
+		private final AtomicBoolean fRunning = new AtomicBoolean(true);
 
 		// Constructor
 		Receiver()
@@ -309,8 +309,11 @@ public class AccessoryControl
 	// Pass data to the third party layer
 	public void sendThirdParty(byte bType, byte[] abData)
 	{
-		if (mThirdParty == null)
+		if (mThirdParty == null){
+			Log.e(TAG, "sendThirdParty: mThirdParty is null!");
 			return;
+		}
+
 
 		mThirdParty.TxMessage(bType, abData);
 	}
@@ -320,12 +323,11 @@ public class AccessoryControl
 	{
 		StringBuffer sData = new StringBuffer();
 
-		for (int i = 0; i < abIn.length; i++)
-		{
-			if ((abIn[i] >> 4) == 0)
+		for (byte b : abIn) {
+			if ((b >> 4) == 0)
 				sData.append('0');
 
-			sData.append(Integer.toHexString(abIn[i] & 0xFF).toUpperCase(Locale.US) + " ");
+			sData.append(Integer.toHexString(b & 0xFF).toUpperCase(Locale.US)).append(" ");
 		}
 
 		return sData;
