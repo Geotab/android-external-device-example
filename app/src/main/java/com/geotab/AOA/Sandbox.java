@@ -26,11 +26,15 @@ package com.geotab.AOA;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.stream.IntStream;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -62,7 +66,7 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 	private AccessoryControl mAccessoryControl;
 	private static final String TAG = Sandbox.class.getSimpleName();	// Used for error logging
 	List<TopicsDataModel> dataModels = new ArrayList<>();;
-	private static TopicsRcyclerAdapter mTopicAdapter;
+	private static TopicsRecyclerAdapter mTopicAdapter;
 	MainBinding binding = null;
 	private ThirdParty.State mInterfaceStatus = ThirdParty.State.SEND_SYNC;
 	// Called when the activity is initialized
@@ -116,8 +120,8 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 
 		mAccessoryControl = new AccessoryControl(this, this);
 
-		dataModels.add(new TopicsDataModel("Empty", 0, false));
-		mTopicAdapter = new TopicsRcyclerAdapter(dataModels);
+		dataModels.add(new TopicsDataModel("Empty", 0));
+		mTopicAdapter = new TopicsRecyclerAdapter(dataModels);
 		binding.topicsList.setAdapter(mTopicAdapter);
 		binding.topicsList.setLayoutManager(new LinearLayoutManager(this));
 		binding.topicsList.setOnClickListener(v ->{
@@ -316,16 +320,78 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 			if (message.getPubSub().hasTopicList()){
 				updateTopicSubscriptions(message.getPubSub().getTopicList().getTopicsList());
 			}
+			if (message.getPubSub().hasPub()){
+				updateTopic(message.getPubSub().getPub());
+			}
 		}
 	}
 
+	public void updateTopic(IoxMessaging.Publish publish) {
+		switch (publish.getValueCase()) {
+			case BOOL_VALUE:
+				updateDataSet(publish.getTopic(), Boolean.toString(publish.getBoolValue()));
+				break;
+			case INT_VALUE:
+				updateDataSet(publish.getTopic(), Integer.toString(publish.getIntValue()));
+				break;
+			case UINT_VALUE:
+				//Java doesn't have any unsigned value!
+				updateDataSet(publish.getTopic(), Integer.toString(publish.getUintValue()));
+				break;
+			case FLOAT_VALUE:
+				String strResultFloat = String.format(Locale.getDefault(),
+						"%.3f", publish.getFloatValue());
+				updateDataSet(publish.getTopic(), strResultFloat);
+				break;
+			case STRING_VALUE:
+				updateDataSet(publish.getTopic(), publish.getStringValue());
+				break;
+			case VEC3_VALUE:
+				String strResultVec3 = String.format(Locale.getDefault(),
+						"[%.2f,%.2f,%.2f]",
+						publish.getVec3Value().getX(),
+						publish.getVec3Value().getY(),
+						publish.getVec3Value().getZ());
+				updateDataSet(publish.getTopic(), strResultVec3);
+				break;
+			case GPS_VALUE:
+				String strResultGPS = String.format(Locale.getDefault(),
+						"[%.4f,%.4f,%.1f]",
+						publish.getGpsValue().getLatitude(),
+						publish.getGpsValue().getLongitude(),
+						publish.getGpsValue().getSpeed());
+				updateDataSet(publish.getTopic(), strResultGPS);
+				break;
+			case VALUE_NOT_SET:
+				break;
+		}
+	}
+	public void updateDataSet(IoxMessaging.Topic topic, String prompt){
+
+		int index = IntStream.range(0, dataModels.size())
+				.filter(i -> Objects.equals(dataModels.get(i).getName(), topic.name()))
+				.findFirst()
+				.orElse(-1);
+			if(index >= 0){
+				Log.d(TAG, "updateDataSet: found index: "+ index + " prompt: "+prompt);
+				TopicsDataModel data = dataModels.get(index);
+				data.setDataText(prompt);
+				data.incrementCounter();
+				dataModels.set(index,data);
+				mTopicAdapter.notifyItemChanged(index);
+			}else{
+				Log.e(TAG, "updateDataSet: didn't find any index!");
+			}
+	}
+
+	@SuppressLint("NotifyDataSetChanged")
 	public void updateTopicsInfoList(List<IoxMessaging.TopicInfo> topics){
 		if (topics.size()>0){
 			dataModels.clear();
 			for (IoxMessaging.TopicInfo topicInfo : topics) {
 				IoxMessaging.Topic mmTopic =topicInfo.getTopic();
 				if (mmTopic.getNumber()>0){
-					dataModels.add(new TopicsDataModel(mmTopic.name(),mmTopic.getNumber(), false));
+					dataModels.add(new TopicsDataModel(mmTopic.name(),mmTopic.getNumber()));
 					Log.d(TAG, "add: "+mmTopic.name());
 				}
 			}
@@ -335,19 +401,20 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 
 	public void updateTopicSubscriptions(List<IoxMessaging.Topic> topics){
 		if (dataModels.size()>0){
-			boolean needsUpdate = false;
 			for (IoxMessaging.Topic topic : topics) {
 				if (topic.getNumber()>0){
-					int index = dataModels.indexOf(new TopicsDataModel(topic.name(),topic.getNumber(), false));
+					int index = IntStream.range(0, dataModels.size())
+							.filter(i -> Objects.equals(dataModels.get(i).getName(), topic.name()))
+							.findFirst()
+							.orElse(-1);
 					if (index >= 0){
-						dataModels.set(index, new TopicsDataModel(topic.name(),topic.getNumber(), true));
-						needsUpdate = true;
+						TopicsDataModel data = dataModels.get(index);
+						data.setSubscribed(TopicsDataModel.SubscriptionStatus.SUBSCRIBED);
+						dataModels.set(index, data);
+						mTopicAdapter.notifyItemChanged(index);
 						Log.d(TAG, "Subscribed: "+topic.name());
 					}
 				}
-			}
-			if(needsUpdate){
-				mTopicAdapter.notifyDataSetChanged();
 			}
 		}
 	}
