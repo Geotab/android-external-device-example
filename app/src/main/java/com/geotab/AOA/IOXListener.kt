@@ -7,4 +7,6 @@ interface IOXListener {
     fun onStatusUpdate(message : String)
     fun onUpdateHOSText(dataHOS : HOSData)
     fun onPassthroughReceived(message : String)
+    fun onConnected()
+    fun onIOXStateChanged(state : ThirdParty.State)
 }
