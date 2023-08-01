@@ -37,8 +37,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.Handler;
 import android.util.Log;
-import android.view.Gravity;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -115,7 +115,7 @@ public class ThirdParty
 	private AccessoryControl mAccessoryControl;
 	private Context mContext;
 	private StateMachine mStateMachine;
-
+	Handler mHandler = null;
 	private enum State
 	{
 		SEND_SYNC, WAIT_FOR_HANDSHAKE, SEND_CONFIRMATION, PRE_IDLE, IDLE, WAIT_FOR_ACK
@@ -131,6 +131,7 @@ public class ThirdParty
 		mAccessoryControl = accessory;
 		mContext = context;						// Context is needed for showToastFromThread
 
+		mHandler = new Handler(context.getMainLooper());
 		mStateMachine = new StateMachine();
 		new Thread(mStateMachine).start();		// Run as a separate thread
 	}
@@ -565,16 +566,11 @@ public class ThirdParty
 	private void showToastFromThread(final String sToast)
 	{
 		Log.i(TAG, sToast);
-
-		final Activity activity = (Activity) mContext;
-
-		activity.runOnUiThread(new Runnable()
-		{
-			public void run()
-			{
+		if (mHandler!=null){
+			mHandler.post(() -> {
 				Toast DisplayMessage = Toast.makeText(mContext, sToast, Toast.LENGTH_SHORT);
 				DisplayMessage.show();
-			}
-		});
+			});
+		}
 	}
 }
