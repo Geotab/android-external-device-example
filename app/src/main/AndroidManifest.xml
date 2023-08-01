@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest android:versionCode="1"
-        android:versionName="1.0" package="com.geotab.AOA" xmlns:android="http://schemas.android.com/apk/res/android">
+        android:versionName="1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- USB requires API >= 12 and Layout requires API >= 14 -->
     <uses-feature android:name="android.hardware.usb.accessory"/>
     <application android:icon="@drawable/ic_launcher" android:label="Geotab AOA Sandbox" android:allowBackup="false">
         <activity android:name="com.geotab.AOA.Sandbox"
-                android:label="Geotab AOA Sandbox"
-                android:launchMode="singleTop">
+            android:launchMode="singleTop"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
