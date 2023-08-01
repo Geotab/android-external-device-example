@@ -44,301 +44,258 @@ import android.os.Handler;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
-public class AccessoryControl
-{
-	public static final String ACTION_USB_PERMISSION = "com.geotab.AOA.MainActivity.action.USB_PERMISSION";
+public class AccessoryControl {
+    public static final String ACTION_USB_PERMISSION = "com.geotab.AOA.MainActivity.action.USB_PERMISSION";
 
-	// Note: If changed, this also needs to be updated in accessory_filter.xml
-	private static final String ACC_MANUF = "Geotab";	// Expected manufacturer name
-	private static final String ACC_MODEL = "IOX USB";	// Expected model name
+    // Note: If changed, this also needs to be updated in accessory_filter.xml
+    private static final String ACC_MANUF = "Geotab";    // Expected manufacturer name
+    private static final String ACC_MODEL = "IOX USB";    // Expected model name
 
-	private static final String TAG = AccessoryControl.class.getSimpleName();	// Used for error logging
+    private static final String TAG = AccessoryControl.class.getSimpleName();    // Used for error logging
 
-	public enum OpenStatus
-	{
-		CONNECTED, REQUESTING_PERMISSION, UNKNOWN_ACCESSORY, NO_ACCESSORY, NO_PARCEL
-	}
+    public enum OpenStatus {
+        CONNECTED, REQUESTING_PERMISSION, UNKNOWN_ACCESSORY, NO_ACCESSORY, NO_PARCEL
+    }
 
-	private final Lock mLock = new ReentrantLock();
-	private final Condition mReceiverEnded = mLock.newCondition();
+    private final Lock mLock = new ReentrantLock();
+    private final Condition mReceiverEnded = mLock.newCondition();
 
-	private boolean mfPermissionRequested, mfConnectionOpen;
+    private boolean mfPermissionRequested, mfConnectionOpen;
 
-	private final UsbManager mUSBManager;
-	//private final Context mContext;
-	private ParcelFileDescriptor mParcelFileDescriptor;
-	private FileOutputStream mOutputStream;
-	private FileInputStream mInputStream;
-	private Receiver mReceiver;
-	private ThirdParty mThirdParty;
-	private final Handler mHandler;
-	private final IOXListener mIOXListener;
-	// Constructor
-	public AccessoryControl(Context context, IOXListener ioxListener)
-	{
-		mfPermissionRequested = false;
-		mfConnectionOpen = false;
-		mThirdParty = null;
-		mHandler = new Handler(context.getMainLooper());
-		mIOXListener = ioxListener;
-		mUSBManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-	}
+    private final UsbManager mUSBManager;
+    //private final Context mContext;
+    private ParcelFileDescriptor mParcelFileDescriptor;
+    private FileOutputStream mOutputStream;
+    private FileInputStream mInputStream;
+    private Receiver mReceiver;
+    private ThirdParty mThirdParty;
+    private final Handler mHandler;
+    private final IOXListener mIOXListener;
 
-	// Requests permissions to access the accessory
-	public OpenStatus open(Context context)
-	{
-		if (mfConnectionOpen)
-			return OpenStatus.CONNECTED;
+    // Constructor
+    public AccessoryControl(Context context, IOXListener ioxListener) {
+        mfPermissionRequested = false;
+        mfConnectionOpen = false;
+        mThirdParty = null;
+        mHandler = new Handler(context.getMainLooper());
+        mIOXListener = ioxListener;
+        mUSBManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+    }
 
-		UsbAccessory[] accList = mUSBManager.getAccessoryList();	// The accessory list only returns 1 entry
-		if (accList != null && accList.length > 0)
-		{
-			// If permission has been granted, try to establish the connection
-			if (mUSBManager.hasPermission(accList[0]))
-				return open(context, accList[0]);
+    // Requests permissions to access the accessory
+    public OpenStatus open(Context context) {
+        if (mfConnectionOpen)
+            return OpenStatus.CONNECTED;
 
-			// If not, request permission
-			if (!mfPermissionRequested)
-			{
-				Log.i(TAG, "Requesting USB permission");
+        UsbAccessory[] accList = mUSBManager.getAccessoryList();    // The accessory list only returns 1 entry
+        if (accList != null && accList.length > 0) {
+            // If permission has been granted, try to establish the connection
+            if (mUSBManager.hasPermission(accList[0]))
+                return open(context, accList[0]);
 
-				PendingIntent permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
-				mUSBManager.requestPermission(accList[0], permissionIntent);
-				mfPermissionRequested = true;
+            // If not, request permission
+            if (!mfPermissionRequested) {
+                Log.i(TAG, "Requesting USB permission");
 
-				return OpenStatus.REQUESTING_PERMISSION;
-			}
-		}
+                PendingIntent permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+                mUSBManager.requestPermission(accList[0], permissionIntent);
+                mfPermissionRequested = true;
 
-		return OpenStatus.NO_ACCESSORY;
-	}
+                return OpenStatus.REQUESTING_PERMISSION;
+            }
+        }
 
-	// Try to establish a connection to the accessory
-	public OpenStatus open(Context context, UsbAccessory accessory)
-	{
-		if (mfConnectionOpen)
-			return OpenStatus.CONNECTED;
+        return OpenStatus.NO_ACCESSORY;
+    }
 
-		// Check if the accessory is supported by this app
-		if (!ACC_MANUF.equals(accessory.getManufacturer()) || !ACC_MODEL.equals(accessory.getModel()))
-		{
-			Log.i(TAG, "Unknown accessory: " + accessory.getManufacturer() + ", " + accessory.getModel());
-			return OpenStatus.UNKNOWN_ACCESSORY;
-		}
+    // Try to establish a connection to the accessory
+    public OpenStatus open(Context context, UsbAccessory accessory) {
+        if (mfConnectionOpen)
+            return OpenStatus.CONNECTED;
 
-		// Open read/write streams for the accessory
-		mParcelFileDescriptor = mUSBManager.openAccessory(accessory);
+        // Check if the accessory is supported by this app
+        if (!ACC_MANUF.equals(accessory.getManufacturer()) || !ACC_MODEL.equals(accessory.getModel())) {
+            Log.i(TAG, "Unknown accessory: " + accessory.getManufacturer() + ", " + accessory.getModel());
+            return OpenStatus.UNKNOWN_ACCESSORY;
+        }
 
-		if (mParcelFileDescriptor != null)
-		{
-			FileDescriptor fd = mParcelFileDescriptor.getFileDescriptor();
-			mOutputStream = new FileOutputStream(fd);
-			mInputStream = new FileInputStream(fd);
+        // Open read/write streams for the accessory
+        mParcelFileDescriptor = mUSBManager.openAccessory(accessory);
 
-			mfConnectionOpen = true;
+        if (mParcelFileDescriptor != null) {
+            FileDescriptor fd = mParcelFileDescriptor.getFileDescriptor();
+            mOutputStream = new FileOutputStream(fd);
+            mInputStream = new FileInputStream(fd);
 
-			mReceiver = new Receiver(context);
-			new Thread(mReceiver).start();			// Run the receiver as a separate thread
+            mfConnectionOpen = true;
 
-			return OpenStatus.CONNECTED;
-		}
+            mReceiver = new Receiver(context);
+            new Thread(mReceiver).start();            // Run the receiver as a separate thread
 
-		Log.i(TAG, "Couldn't get any ParcelDescriptor");
-		return OpenStatus.NO_PARCEL;
-	}
+            return OpenStatus.CONNECTED;
+        }
 
-	// End and shutdown the communication with the accessory
-	public void appIsClosing()
-	{
-		if (!mfConnectionOpen)
-			return;
+        Log.i(TAG, "Couldn't get any ParcelDescriptor");
+        return OpenStatus.NO_PARCEL;
+    }
 
-		mReceiver.close();
+    // End and shutdown the communication with the accessory
+    public void appIsClosing() {
+        if (!mfConnectionOpen)
+            return;
 
-		mLock.lock();
-		try
-		{
-			// Wait up to 100ms for the receiver thread to gracefully close the link
-			mReceiverEnded.await(100, TimeUnit.MILLISECONDS);
-		}
-		catch (InterruptedException e)
-		{
-			Log.w(TAG, "Exception in disconnect timeout", e);
-		}
-		finally
-		{
-			mLock.unlock();
-		}
-	}
+        mReceiver.close();
 
-	// Stop and clean up the connection to the accessory
-	public void close()
-	{
-		if (!mfConnectionOpen)
-			return;
+        mLock.lock();
+        try {
+            // Wait up to 100ms for the receiver thread to gracefully close the link
+            mReceiverEnded.await(100, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Log.w(TAG, "Exception in disconnect timeout", e);
+        } finally {
+            mLock.unlock();
+        }
+    }
 
-		mfPermissionRequested = false;
-		mfConnectionOpen = false;
+    // Stop and clean up the connection to the accessory
+    public void close() {
+        if (!mfConnectionOpen)
+            return;
 
-		// End the receiver thread
-		mReceiver.close();
-		Log.i(TAG, "Receiver Thread closed");
+        mfPermissionRequested = false;
+        mfConnectionOpen = false;
 
-		// Close the data streams
-		try
-		{
-			mInputStream.close();
-			Log.i(TAG, "Input Stream closed");
-		}
-		catch (IOException e)
-		{
-			Log.w(TAG, "Exception when closing Input Stream", e);
-		}
+        // End the receiver thread
+        mReceiver.close();
+        Log.i(TAG, "Receiver Thread closed");
 
-		try
-		{
-			mOutputStream.close();
-			Log.i(TAG, "Output Stream closed");
-		}
-		catch (IOException e)
-		{
-			Log.w(TAG, "Exception when closing Output Stream", e);
-		}
+        // Close the data streams
+        try {
+            mInputStream.close();
+            Log.i(TAG, "Input Stream closed");
+        } catch (IOException e) {
+            Log.w(TAG, "Exception when closing Input Stream", e);
+        }
 
-		try
-		{
-			mParcelFileDescriptor.close();
-			Log.i(TAG, "File Descriptor closed");
-		}
-		catch (IOException e)
-		{
-			Log.w(TAG, "Exception when closing File Descriptor", e);
-		}
-	}
+        try {
+            mOutputStream.close();
+            Log.i(TAG, "Output Stream closed");
+        } catch (IOException e) {
+            Log.w(TAG, "Exception when closing Output Stream", e);
+        }
 
-	// Send a command to the accessory
-	public void write(byte[] abData)
-	{
-		if (!mfConnectionOpen)
-			return;
+        try {
+            mParcelFileDescriptor.close();
+            Log.i(TAG, "File Descriptor closed");
+        } catch (IOException e) {
+            Log.w(TAG, "Exception when closing File Descriptor", e);
+        }
+    }
 
-		try
-		{
-			// Lock the output stream for the write operation
-			synchronized (mOutputStream)
-			{
-				mOutputStream.write(abData);
-			}
-		}
-		catch (IOException e)
-		{
-			Log.w(TAG, "Exception writing to output stream", e);
-			close();
-		}
-	}
+    // Send a command to the accessory
+    public void write(byte[] abData) {
+        if (!mfConnectionOpen)
+            return;
 
-	// A new thread that receives messages from the accessory
-	private class Receiver implements Runnable
-	{
-		private final AtomicBoolean fRunning = new AtomicBoolean(true);
+        try {
+            // Lock the output stream for the write operation
+            synchronized (mOutputStream) {
+                mOutputStream.write(abData);
+            }
+        } catch (IOException e) {
+            Log.w(TAG, "Exception writing to output stream", e);
+            close();
+        }
+    }
 
-		// Constructor
-		Receiver(Context context)
-		{
-			mThirdParty = new ThirdParty(AccessoryControl.this, context, mIOXListener);
-		}
+    // A new thread that receives messages from the accessory
+    private class Receiver implements Runnable {
+        private final AtomicBoolean fRunning = new AtomicBoolean(true);
 
-		public void run()
-		{
-			int iNumberOfBytesRead = 0;
-			byte[] abBuffer = new byte[512];	// max is [16384]
+        // Constructor
+        Receiver(Context context) {
+            mThirdParty = new ThirdParty(AccessoryControl.this, context, mIOXListener);
+        }
 
-			Log.i(TAG, "Receiver thread started");
+        public void run() {
+            int iNumberOfBytesRead = 0;
+            byte[] abBuffer = new byte[512];    // max is [16384]
 
-			try
-			{
-				while (fRunning.get())
-				{
-					// Note: Read blocks until one byte has been read, the end of the source stream is detected or an exception is thrown
-					iNumberOfBytesRead = mInputStream.read(abBuffer);
+            Log.i(TAG, "Receiver thread started");
 
-					if (fRunning.get() && (iNumberOfBytesRead > 0))
-					{
-						byte[] abMessage = new byte[iNumberOfBytesRead];
-						System.arraycopy(abBuffer, 0, abMessage, 0, abMessage.length);
+            try {
+                while (fRunning.get()) {
+                    // Note: Read blocks until one byte has been read, the end of the source stream is detected or an exception is thrown
+                    iNumberOfBytesRead = mInputStream.read(abBuffer);
 
-						mThirdParty.RxMessage(abMessage);
+                    if (fRunning.get() && (iNumberOfBytesRead > 0)) {
+                        byte[] abMessage = new byte[iNumberOfBytesRead];
+                        System.arraycopy(abBuffer, 0, abMessage, 0, abMessage.length);
 
-						StringBuffer sDisplay = convertToString(abMessage);
-						updateTextOnUI(sDisplay.toString());
-					}
-				}
-			}
-			catch (IOException e)
-			{
-				Log.w(TAG, "Exception reading input stream", e);
-				close();
-			}
+                        mThirdParty.RxMessage(abMessage);
 
-			mLock.lock();
-			try
-			{
-				mReceiverEnded.signal();
-			}
-			finally
-			{
-				mLock.unlock();
-			}
+                        StringBuffer sDisplay = convertToString(abMessage);
+                        updateTextOnUI(sDisplay.toString());
+                    }
+                }
+            } catch (IOException e) {
+                Log.w(TAG, "Exception reading input stream", e);
+                close();
+            }
 
-			Log.i(TAG, "Receiver thread ended");
-		}
+            mLock.lock();
+            try {
+                mReceiverEnded.signal();
+            } finally {
+                mLock.unlock();
+            }
 
-		// Shutdown the receiver and third party threads
-		public void close()
-		{
-			fRunning.set(false);
+            Log.i(TAG, "Receiver thread ended");
+        }
 
-			if (mThirdParty != null)
-			{
-				mThirdParty.close();
-				mThirdParty = null;
-			}
-		}
-	};
+        // Shutdown the receiver and third party threads
+        public void close() {
+            fRunning.set(false);
 
-	// Pass data to the third party layer
-	public void sendThirdParty(byte bType, byte[] abData)
-	{
-		if (mThirdParty == null){
-			Log.e(TAG, "sendThirdParty: mThirdParty is null!");
-			return;
-		}
+            if (mThirdParty != null) {
+                mThirdParty.close();
+                mThirdParty = null;
+            }
+        }
+    }
+
+    ;
+
+    // Pass data to the third party layer
+    public void sendThirdParty(byte bType, byte[] abData) {
+        if (mThirdParty == null) {
+            Log.e(TAG, "sendThirdParty: mThirdParty is null!");
+            return;
+        }
 
 
-		mThirdParty.TxMessage(bType, abData);
-	}
+        mThirdParty.TxMessage(bType, abData);
+    }
 
-	// Converts a byte array to a string
-	private static StringBuffer convertToString(byte[] abIn)
-	{
-		StringBuffer sData = new StringBuffer();
+    // Converts a byte array to a string
+    private static StringBuffer convertToString(byte[] abIn) {
+        StringBuffer sData = new StringBuffer();
 
-		for (byte b : abIn) {
-			if ((b >> 4) == 0)
-				sData.append('0');
+        for (byte b : abIn) {
+            if ((b >> 4) == 0)
+                sData.append('0');
 
-			sData.append(Integer.toHexString(b & 0xFF).toUpperCase(Locale.US)).append(" ");
-		}
+            sData.append(Integer.toHexString(b & 0xFF).toUpperCase(Locale.US)).append(" ");
+        }
 
-		return sData;
-	}
+        return sData;
+    }
 
-	// Update text on the UI thread from another calling thread
-	private void updateTextOnUI(final String sDisplay)
-	{
-		Log.i(TAG, sDisplay);
-		if (mHandler!=null && mIOXListener !=null){
-			mHandler.post(()-> mIOXListener.onPassthroughReceived(sDisplay));
-		}
-	}
+    // Update text on the UI thread from another calling thread
+    private void updateTextOnUI(final String sDisplay) {
+        Log.i(TAG, sDisplay);
+        if (mHandler != null && mIOXListener != null) {
+            mHandler.post(() -> mIOXListener.onPassthroughReceived(sDisplay));
+        }
+    }
 }
