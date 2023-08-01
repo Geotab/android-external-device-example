@@ -72,4 +72,5 @@ dependencies {
     implementation 'com.google.protobuf:protobuf-javalite:3.8.0'
     implementation 'org.testng:testng:7.4.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.recyclerview:recyclerview:1.2.1'
 }
