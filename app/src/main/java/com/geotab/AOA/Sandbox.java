@@ -287,7 +287,6 @@ public class Sandbox extends Activity
 			public void run()
 			{
 				Toast DisplayMessage = Toast.makeText(getApplicationContext(), sToast, Toast.LENGTH_SHORT);
-				DisplayMessage.setGravity(Gravity.CENTER_VERTICAL | Gravity.BOTTOM, 0, 0);
 				DisplayMessage.show();
 			}
 		});
