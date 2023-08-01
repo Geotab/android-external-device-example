@@ -4,9 +4,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- USB requires API >= 12 and Layout requires API >= 14 -->
     <uses-feature android:name="android.hardware.usb.accessory"/>
-    <application android:icon="@drawable/ic_launcher" android:label="Geotab AOA Sandbox" android:allowBackup="false">
+    <application android:icon="@drawable/ic_launcher"
+        android:label="Geotab AOA Sandbox"
+        android:allowBackup="false"
+        android:theme="@style/Theme.AppCompat.Light">
         <activity android:name="com.geotab.AOA.Sandbox"
             android:launchMode="singleTop"
+            android:configChanges="keyboardHidden|orientation|screenSize"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
