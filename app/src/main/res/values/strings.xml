@@ -2,4 +2,5 @@
 <resources>
     <string name="interface_mode">Interface Mode</string>
     <string name="get_iox_topics">Get IOX Topics</string>
+    <string name="iox_interface_status">IOX Interface Status:</string>
 </resources>
