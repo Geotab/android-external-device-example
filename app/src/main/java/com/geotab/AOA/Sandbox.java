@@ -27,6 +27,7 @@ package com.geotab.AOA;
 import java.util.ArrayList;
 import java.util.List;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -51,7 +52,7 @@ import com.geotab.AOA.databinding.MainBinding;
 import com.geotab.AOA.helpers.IOXHelper;
 import com.geotab.ioxproto.IoxMessaging;
 
-public class Sandbox extends AppCompatActivity
+public class Sandbox extends AppCompatActivity  implements IOXListener
 {
 	private Spinner mSpinner;
 	private AccessoryControl mAccessoryControl;
@@ -300,4 +301,8 @@ public class Sandbox extends AppCompatActivity
 		startActivity(sendLocationToMap);
 	}
 
+	@Override
+	public void onIOXReceived(@NonNull IoxMessaging.IoxFromGo message) {
+
+	}
 }
