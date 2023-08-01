@@ -29,6 +29,8 @@ import java.util.List;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -38,6 +40,7 @@ import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -58,9 +61,10 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 	private Spinner mSpinner;
 	private AccessoryControl mAccessoryControl;
 	private static final String TAG = Sandbox.class.getSimpleName();	// Used for error logging
-	ArrayList<TopicsDataModel> dataModels;
-	private static TopicsAdapter adapter;
+	List<TopicsDataModel> dataModels = new ArrayList<>();;
+	private static TopicsRcyclerAdapter mTopicAdapter;
 	MainBinding binding = null;
+	private ThirdParty.State mInterfaceStatus = ThirdParty.State.SEND_SYNC;
 	// Called when the activity is initialized
 	@Override
 	public void onCreate(Bundle savedInstanceState)
@@ -111,23 +115,16 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 			}});
 
 		mAccessoryControl = new AccessoryControl(this, this);
-		dataModels= new ArrayList<>();
-		try {
-			for (IoxMessaging.Topic topic : IoxMessaging.Topic.values()) {
-				Log.d(TAG, "TopicInfoList: "+topic.name());
-				if (topic.getNumber()>0){
-					dataModels.add(new TopicsDataModel(topic.name(),topic.getNumber(), false));
-				}
-			}
-		}catch (Exception ex){
-			Log.d(TAG, "TopicInfoList: "+ex.getMessage());
-		}
-		adapter= new TopicsAdapter(dataModels,getApplicationContext());
-		binding.topicsList.setAdapter(adapter);
-		binding.topicsList.setOnItemClickListener((parent, view, position, id) -> {
-			TopicsDataModel dataModel= dataModels.get(position);
-			Log.d(TAG, "onItemClick: "+dataModel);
+
+		dataModels.add(new TopicsDataModel("Empty", 0, false));
+		mTopicAdapter = new TopicsRcyclerAdapter(dataModels);
+		binding.topicsList.setAdapter(mTopicAdapter);
+		binding.topicsList.setLayoutManager(new LinearLayoutManager(this));
+		binding.topicsList.setOnClickListener(v ->{
+			//TopicsDataModel dataModel= dataModels.get(position);
+			Log.d(TAG, "onItemClick: "+v.getTag());
 		});
+
 		binding.btnIoxTopics.setOnClickListener(v -> protoGetAvailableTopics());
 		binding.btnGetSubs.setOnClickListener(v ->
 				protoGetSubscribedTopics());
@@ -150,8 +147,10 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 	{
 		super.onResume();
 		OpenStatus status = mAccessoryControl.open(this);
-		if (status == OpenStatus.CONNECTED)
+		if (status == OpenStatus.CONNECTED){
 			showToast("Connected (OnResume)");
+			getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		}
 		else if (status != OpenStatus.REQUESTING_PERMISSION && status != OpenStatus.NO_ACCESSORY)
 			showToast("Error: " + status);
 	}
@@ -182,10 +181,12 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 					Log.i(TAG, "Permission Granted");
 
 					OpenStatus status = mAccessoryControl.open(Sandbox.this, accessory);
-					if (status == OpenStatus.CONNECTED)
+					if (status == OpenStatus.CONNECTED){
 						showToast("Connected (onReceive)");
-					else
+						getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+					} else {
 						showToast("Error: " + status);
+					}
 				}
 				else
 				{
@@ -196,6 +197,7 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 			{
 				showToast("Detached");
 				mAccessoryControl.close();
+				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 			}
 		}
 	};
@@ -305,8 +307,49 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 
 	@Override
 	public void onIOXReceived(@NonNull IoxMessaging.IoxFromGo message) {
-		Log.d(TAG, "onIOXReceived:  message:"
+		Log.d(TAG, "onIOXReceived:\n MsgCase:"+message.getMsgCase()+"\nmessage:"
 				+message.toString());
+		if (message.getMsgCase() == IoxMessaging.IoxFromGo.MsgCase.PUB_SUB){
+			if (message.getPubSub().hasTopicInfoList()){
+				updateTopicsInfoList(message.getPubSub().getTopicInfoList().getTopicsList());
+			}
+			if (message.getPubSub().hasTopicList()){
+				updateTopicSubscriptions(message.getPubSub().getTopicList().getTopicsList());
+			}
+		}
+	}
+
+	public void updateTopicsInfoList(List<IoxMessaging.TopicInfo> topics){
+		if (topics.size()>0){
+			dataModels.clear();
+			for (IoxMessaging.TopicInfo topicInfo : topics) {
+				IoxMessaging.Topic mmTopic =topicInfo.getTopic();
+				if (mmTopic.getNumber()>0){
+					dataModels.add(new TopicsDataModel(mmTopic.name(),mmTopic.getNumber(), false));
+					Log.d(TAG, "add: "+mmTopic.name());
+				}
+			}
+			mTopicAdapter.notifyDataSetChanged();
+		}
+	}
+
+	public void updateTopicSubscriptions(List<IoxMessaging.Topic> topics){
+		if (dataModels.size()>0){
+			boolean needsUpdate = false;
+			for (IoxMessaging.Topic topic : topics) {
+				if (topic.getNumber()>0){
+					int index = dataModels.indexOf(new TopicsDataModel(topic.name(),topic.getNumber(), false));
+					if (index >= 0){
+						dataModels.set(index, new TopicsDataModel(topic.name(),topic.getNumber(), true));
+						needsUpdate = true;
+						Log.d(TAG, "Subscribed: "+topic.name());
+					}
+				}
+			}
+			if(needsUpdate){
+				mTopicAdapter.notifyDataSetChanged();
+			}
+		}
 	}
 
 	@Override
@@ -320,7 +363,7 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 		if(binding != null){
 			binding.DateTime.setText(dataHOS.sDateTime);
 			binding.Latitude.setText(Float.toString(dataHOS.Latitude));
-			binding.Logitude.setText(Float.toString(dataHOS.Logitude));
+			binding.Logitude.setText(Float.toString(dataHOS.Longitude));
 			binding.Speed.setText(Integer.toString(dataHOS.iRoadSpeed));
 			binding.RPM.setText(Integer.toString(dataHOS.iRPM));
 			binding.Odometer.setText(Integer.toString(dataHOS.iOdometer));
@@ -339,5 +382,16 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 		if(binding != null){
 			binding.PassthroughReceived.setText(message);
 		}
+	}
+
+	@Override
+	public void onConnected() {
+		Log.d(TAG, "onConnected!");
+	}
+
+	@Override
+	public void onIOXStateChanged(@NonNull ThirdParty.State state) {
+		mInterfaceStatus = state;
+		binding.textIoxStatus.setText(state.name());
 	}
 }
