@@ -35,15 +35,14 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
+import android.os.Handler;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
-import android.widget.TextView;
 
 public class AccessoryControl
 {
@@ -66,26 +65,27 @@ public class AccessoryControl
 	private boolean mfPermissionRequested, mfConnectionOpen;
 
 	private final UsbManager mUSBManager;
-	private final Context mContext;
+	//private final Context mContext;
 	private ParcelFileDescriptor mParcelFileDescriptor;
 	private FileOutputStream mOutputStream;
 	private FileInputStream mInputStream;
 	private Receiver mReceiver;
 	private ThirdParty mThirdParty;
-
+	private final Handler mHandler;
+	private final IOXListener mIOXListener;
 	// Constructor
-	public AccessoryControl(Context context)
+	public AccessoryControl(Context context, IOXListener ioxListener)
 	{
 		mfPermissionRequested = false;
 		mfConnectionOpen = false;
 		mThirdParty = null;
-
-		mContext = context;
+		mHandler = new Handler(context.getMainLooper());
+		mIOXListener = ioxListener;
 		mUSBManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
 	}
 
 	// Requests permissions to access the accessory
-	public OpenStatus open()
+	public OpenStatus open(Context context)
 	{
 		if (mfConnectionOpen)
 			return OpenStatus.CONNECTED;
@@ -95,14 +95,14 @@ public class AccessoryControl
 		{
 			// If permission has been granted, try to establish the connection
 			if (mUSBManager.hasPermission(accList[0]))
-				return open(accList[0]);
+				return open(context, accList[0]);
 
 			// If not, request permission
 			if (!mfPermissionRequested)
 			{
 				Log.i(TAG, "Requesting USB permission");
 
-				PendingIntent permissionIntent = PendingIntent.getBroadcast(mContext, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+				PendingIntent permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
 				mUSBManager.requestPermission(accList[0], permissionIntent);
 				mfPermissionRequested = true;
 
@@ -114,7 +114,7 @@ public class AccessoryControl
 	}
 
 	// Try to establish a connection to the accessory
-	public OpenStatus open(UsbAccessory accessory)
+	public OpenStatus open(Context context, UsbAccessory accessory)
 	{
 		if (mfConnectionOpen)
 			return OpenStatus.CONNECTED;
@@ -128,16 +128,16 @@ public class AccessoryControl
 
 		// Open read/write streams for the accessory
 		mParcelFileDescriptor = mUSBManager.openAccessory(accessory);
-		
+
 		if (mParcelFileDescriptor != null)
 		{
 			FileDescriptor fd = mParcelFileDescriptor.getFileDescriptor();
 			mOutputStream = new FileOutputStream(fd);
 			mInputStream = new FileInputStream(fd);
-			
+
 			mfConnectionOpen = true;
 
-			mReceiver = new Receiver();
+			mReceiver = new Receiver(context);
 			new Thread(mReceiver).start();			// Run the receiver as a separate thread
 
 			return OpenStatus.CONNECTED;
@@ -183,8 +183,8 @@ public class AccessoryControl
 		// End the receiver thread
 		mReceiver.close();
 		Log.i(TAG, "Receiver Thread closed");
-		
-		// Close the data streams 
+
+		// Close the data streams
 		try
 		{
 			mInputStream.close();
@@ -194,7 +194,7 @@ public class AccessoryControl
 		{
 			Log.w(TAG, "Exception when closing Input Stream", e);
 		}
-		
+
 		try
 		{
 			mOutputStream.close();
@@ -204,7 +204,7 @@ public class AccessoryControl
 		{
 			Log.w(TAG, "Exception when closing Output Stream", e);
 		}
-		
+
 		try
 		{
 			mParcelFileDescriptor.close();
@@ -243,9 +243,9 @@ public class AccessoryControl
 		private final AtomicBoolean fRunning = new AtomicBoolean(true);
 
 		// Constructor
-		Receiver()
+		Receiver(Context context)
 		{
-			mThirdParty = new ThirdParty(AccessoryControl.this, mContext);
+			mThirdParty = new ThirdParty(AccessoryControl.this, context, mIOXListener);
 		}
 
 		public void run()
@@ -270,7 +270,7 @@ public class AccessoryControl
 						mThirdParty.RxMessage(abMessage);
 
 						StringBuffer sDisplay = convertToString(abMessage);
-						updateTextOnUI(sDisplay);
+						updateTextOnUI(sDisplay.toString());
 					}
 				}
 			}
@@ -289,7 +289,7 @@ public class AccessoryControl
 			{
 				mLock.unlock();
 			}
-			
+
 			Log.i(TAG, "Receiver thread ended");
 		}
 
@@ -297,7 +297,7 @@ public class AccessoryControl
 		public void close()
 		{
 			fRunning.set(false);
-			
+
 			if (mThirdParty != null)
 			{
 				mThirdParty.close();
@@ -334,17 +334,11 @@ public class AccessoryControl
 	}
 
 	// Update text on the UI thread from another calling thread
-	private void updateTextOnUI(final StringBuffer sDisplay)
+	private void updateTextOnUI(final String sDisplay)
 	{
-		final Activity activity = (Activity) mContext;
-
-		activity.runOnUiThread(new Runnable()
-		{
-			public void run()
-			{
-				TextView PassthroughReceived = (TextView) activity.findViewById(R.id.PassthroughReceived);
-				PassthroughReceived.setText(sDisplay);
-			}
-		});
+		Log.i(TAG, sDisplay);
+		if (mHandler!=null && mIOXListener !=null){
+			mHandler.post(()-> mIOXListener.onPassthroughReceived(sDisplay));
+		}
 	}
 }
