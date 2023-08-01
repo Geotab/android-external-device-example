@@ -37,6 +37,8 @@ import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -46,14 +48,16 @@ import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import com.geotab.AOA.AccessoryControl.OpenStatus;
 import com.geotab.AOA.databinding.MainBinding;
+import com.geotab.AOA.helpers.IOXHelper;
+import com.geotab.ioxproto.IoxMessaging;
 
 public class Sandbox extends Activity
 {
 	private Spinner mSpinner;
 	private AccessoryControl mAccessoryControl;
-
 	private static final String TAG = Sandbox.class.getSimpleName();	// Used for error logging
-
+	ArrayList<TopicsDataModel> dataModels;
+	private static TopicsAdapter adapter;
 	// Called when the activity is initialized
 	@Override
 	public void onCreate(Bundle savedInstanceState)
@@ -73,7 +77,8 @@ public class Sandbox extends Activity
 
 		// Received Text View
 		binding.PassthroughReceived.setMovementMethod(new ScrollingMovementMethod());
-
+		binding.hosLayout.setVisibility(View.VISIBLE);
+		binding.pubSubLayout.setVisibility(View.GONE);
 		// Selectable HOS message list
 		List<String> sDispalyedList = new ArrayList<String>();
 		for (int i = 0; i < ThirdParty.THIRD_PARTY_MESSAGE_DEFINEs.length; i++)
@@ -84,8 +89,45 @@ public class Sandbox extends Activity
 		ArrayAdapter<String> SpinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, sDispalyedList);
 		SpinnerAdapter.setDropDownViewResource(android.R.layout.select_dialog_singlechoice);
 		mSpinner.setAdapter(SpinnerAdapter);
+		mSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+			@Override
+			public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+				if (parent.getItemAtPosition(position).toString().equals("PROTOBUF PUB/SUB")){
+					binding.hosLayout.setVisibility(View.GONE);
+					binding.pubSubLayout.setVisibility(View.VISIBLE);
+					//Todo:
+					Log.d(TAG, "Switch to PROTOBUF PUB/SUB Mode");
+				}else{
+					binding.hosLayout.setVisibility(View.VISIBLE);
+					binding.pubSubLayout.setVisibility(View.GONE);
+				}
+			}
+			@Override
+			public void onNothingSelected(AdapterView<?> parent) {
+				Log.d(TAG, "setOnItemClickListener onNothingSelected!");
+			}});
 
 		mAccessoryControl = new AccessoryControl(this);
+		dataModels= new ArrayList<>();
+		try {
+			for (IoxMessaging.Topic topic : IoxMessaging.Topic.values()) {
+				Log.d(TAG, "TopicInfoList: "+topic.name());
+				if (topic.getNumber()>0){
+					dataModels.add(new TopicsDataModel(topic.name(),topic.getNumber(), false));
+				}
+			}
+		}catch (Exception ex){
+			Log.d(TAG, "TopicInfoList: "+ex.getMessage());
+		}
+		adapter= new TopicsAdapter(dataModels,getApplicationContext());
+		binding.topicsList.setAdapter(adapter);
+		binding.topicsList.setOnItemClickListener((parent, view, position, id) -> {
+			TopicsDataModel dataModel= dataModels.get(position);
+			Log.d(TAG, "onItemClick: "+dataModel);
+		});
+		binding.btnIoxTopics.setOnClickListener(v -> {writePassthrough();});
+		binding.btnSubGps.setOnClickListener(v ->
+				subscribeToTopic(IoxMessaging.Topic.TOPIC_GEAR_VALUE));
 	}
 
 	// Runs when the activity goes to the background
@@ -102,7 +144,6 @@ public class Sandbox extends Activity
 	public void onResume()
 	{
 		super.onResume();
-
 		OpenStatus status = mAccessoryControl.open();
 		if (status == OpenStatus.CONNECTED)
 			showToastFromThread("Connected (OnResume)");
@@ -114,9 +155,8 @@ public class Sandbox extends Activity
 	@Override
 	protected void onDestroy()
 	{
-		super.onDestroy();
-
 		unregisterReceiver(receiver);
+		super.onDestroy();
 	}
 
 	// Listens for permission and accessory detached messages (registered in onCreate)
@@ -126,7 +166,7 @@ public class Sandbox extends Activity
 		public void onReceive(Context context, Intent intent)
 		{
 			String action = intent.getAction();
-
+			Log.d(TAG, "BroadcastReceiver action:"+ action);
 			// Check the reason the receiver was called
 			if (AccessoryControl.ACTION_USB_PERMISSION.equals(action))
 			{
@@ -179,8 +219,19 @@ public class Sandbox extends Activity
 			{
 				if (bMessageType == ThirdParty.PROTOBUF_DATA_PACKET){
 					Log.d(TAG, "Tx:PROTOBUF_DATA_PACKET!");
+					byte[] ioxMessage = IOXHelper.Companion.getIOXTopicListMessage().toByteArray();
+//							IoxMessaging.IoxToGo.newBuilder().setPubSub(
+//									IoxMessaging.PubSubToGo
+//											.newBuilder()
+//											.clearListAvailTopics()
+//											.build())
+//							.build()
+//							.toByteArray();
 					// Todo: generate the corresponding IOX message!
-					//mAccessoryControl.sendThirdParty(bMessageType, abData);
+					byte[] abMessage = new byte[ioxMessage.length];
+					System.arraycopy(ioxMessage, 0, abMessage, 0, ioxMessage.length);
+					//System.arraycopy(ioxMessage, 0, abMessage, abCommand.length, ioxMessage.length);
+					mAccessoryControl.sendThirdParty(bMessageType, abMessage);
 				}else{
 					// Send the data and message type directly
 					mAccessoryControl.sendThirdParty(bMessageType, abData);
@@ -195,6 +246,13 @@ public class Sandbox extends Activity
 			System.arraycopy(abData, 1, abMessage, 0, abMessage.length);
 			mAccessoryControl.sendThirdParty(bMessageType, abMessage);
 		}
+	}
+
+	void subscribeToTopic(int topic){
+		byte[] ioxMessage = IOXHelper.Companion.getIOXSubscribeToTopicMessage(topic).toByteArray();
+		byte[] abMessage = new byte[ioxMessage.length];
+		System.arraycopy(ioxMessage, 0, abMessage, 0, ioxMessage.length);
+		mAccessoryControl.sendThirdParty(ThirdParty.PROTOBUF_DATA_PACKET, abMessage);
 	}
 
 	// Converts a string to a byte array
