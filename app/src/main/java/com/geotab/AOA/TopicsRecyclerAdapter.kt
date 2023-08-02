@@ -1,13 +1,15 @@
 package com.geotab.AOA
 
+import android.util.DisplayMetrics
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 
-class TopicsRecyclerAdapter(private val dataSet: List<TopicsDataModel>,
+class TopicsRecyclerAdapter(private val dataSet: List<TopicsDataModel>, private val metrics: DisplayMetrics,
                             private val listener: (TopicsDataModel, Int) -> Unit) :
     RecyclerView.Adapter<TopicsRecyclerAdapter.ViewHolder>() {
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -15,12 +17,14 @@ class TopicsRecyclerAdapter(private val dataSet: List<TopicsDataModel>,
         val valueText: TextView
         val counterText: TextView
         val statusText: TextView
+        val topicLayout: LinearLayout
         init {
             // Define click listener for the ViewHolder's View
             lblSub = view.findViewById(R.id.lbl_sub)
             valueText = view.findViewById(R.id.topic_data)
             statusText  = view.findViewById(R.id.topic_sub_status)
             counterText  = view.findViewById(R.id.topic_counter)
+            topicLayout  = view.findViewById(R.id.topic_sub_layout)
         }
     }
 
@@ -41,8 +45,12 @@ class TopicsRecyclerAdapter(private val dataSet: List<TopicsDataModel>,
         viewHolder.statusText.text= dataSet[position].subscribed.statusText
         viewHolder.statusText.setTextColor(dataSet[position].subscribed.color)
         viewHolder.statusText.setTypeface(null, dataSet[position].subscribed.typeface);
+        viewHolder.topicLayout.elevation = convertDipsToPixels(dataSet[position].subscribed.layoutElv)
     }
 
+    private fun convertDipsToPixels(dp: Float): Float {
+        return dp * metrics.density
+    }
     override fun getItemCount() = dataSet.size
 
     override fun getItemId(position: Int): Long {
