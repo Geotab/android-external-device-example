@@ -3,22 +3,21 @@ package com.geotab.AOA
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 
-class TopicsRecyclerAdapter(private val dataSet: List<TopicsDataModel>) :
+class TopicsRecyclerAdapter(private val dataSet: List<TopicsDataModel>,
+                            private val listener: (TopicsDataModel, Int) -> Unit) :
     RecyclerView.Adapter<TopicsRecyclerAdapter.ViewHolder>() {
-
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val chkSub: CheckBox
+        val lblSub: TextView
         val valueText: TextView
         val counterText: TextView
         val statusText: TextView
         init {
             // Define click listener for the ViewHolder's View
-            chkSub = view.findViewById(R.id.chk_sub)
+            lblSub = view.findViewById(R.id.lbl_sub)
             valueText = view.findViewById(R.id.topic_data)
             statusText  = view.findViewById(R.id.topic_sub_status)
             counterText  = view.findViewById(R.id.topic_counter)
@@ -32,10 +31,9 @@ class TopicsRecyclerAdapter(private val dataSet: List<TopicsDataModel>) :
     }
 
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
-        viewHolder.chkSub.text = dataSet[position].name
-        if (dataSet[position].subscribed == TopicsDataModel.SubscriptionStatus.SUBSCRIBED){
-            viewHolder.chkSub.isChecked = true
-        }
+        viewHolder.lblSub.text = dataSet[position].name
+        viewHolder.lblSub.setTypeface(null, dataSet[position].subscribed.typeface);
+        viewHolder.itemView.setOnClickListener { listener(dataSet[position], position) }
         val valueTextStr ="Value: ${dataSet[position].dataText}"
         viewHolder.valueText.text =valueTextStr
         val counterTextStr ="Counter: ${dataSet[position].counter}"
