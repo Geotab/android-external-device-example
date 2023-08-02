@@ -535,5 +535,7 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 	public void onIOXStateChanged(@NonNull ThirdParty.State state) {
 		mInterfaceStatus = state;
 		binding.textIoxStatus.setText(state.name());
+		binding.btnIoxTopics.setEnabled(state == ThirdParty.State.IDLE);
+		binding.btnGetSubs.setEnabled(state == ThirdParty.State.IDLE);
 	}
 }
