@@ -52,23 +52,15 @@
 
             <Button
                 android:id="@+id/btn_iox_topics"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:text="@string/get_iox_topics" />
             <Button
                 android:id="@+id/btn_get_subs"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Get Subs" />
+                android:text="Get Subscriptions" />
 
-            <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btn_sub_gps"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="subscribe" />
 
         </LinearLayout>
         <LinearLayout
