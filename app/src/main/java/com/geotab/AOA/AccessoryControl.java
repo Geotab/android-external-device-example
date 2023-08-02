@@ -59,11 +59,8 @@ public class AccessoryControl {
 
     private final Lock mLock = new ReentrantLock();
     private final Condition mReceiverEnded = mLock.newCondition();
-
     private boolean mfPermissionRequested, mfConnectionOpen;
-
     private final UsbManager mUSBManager;
-    //private final Context mContext;
     private ParcelFileDescriptor mParcelFileDescriptor;
     private FileOutputStream mOutputStream;
     private FileInputStream mInputStream;
