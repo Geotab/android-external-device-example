@@ -43,6 +43,7 @@ import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
@@ -121,7 +122,8 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 		mAccessoryControl = new AccessoryControl(this, this);
 
 		dataModels.add(new TopicsDataModel("Empty", -1));
-		mTopicAdapter = new TopicsRecyclerAdapter(dataModels, (item, index) ->
+		DisplayMetrics metrics = this.getResources().getDisplayMetrics();
+		mTopicAdapter = new TopicsRecyclerAdapter(dataModels, metrics, (item, index) ->
 		{
 			Log.d(TAG, "onItemClick: " + item);
 			if (mInterfaceStatus!= ThirdParty.State.IDLE){
