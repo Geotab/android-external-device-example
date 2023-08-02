@@ -17,8 +17,10 @@ class TopicsDataModel(var name: String,
             Typeface.BOLD),
         UNSUBSCRIBED("Unsubscribed", Color.RED,
             Typeface.ITALIC),
-        SUBSCRIBING("Subscribing", Color.argb(255, 150, 150, 0),
-            Typeface.ITALIC)
+        SUBSCRIBING("Subscribing...", Color.argb(255, 200, 200, 0),
+            Typeface.ITALIC),
+        UNSUBSCRIBING("Unsubscribing...", Color.argb(255, 200, 200, 0),
+        Typeface.ITALIC)
     }
 
     fun incrementCounter() {
