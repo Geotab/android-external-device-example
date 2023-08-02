@@ -1,5 +1,6 @@
 package com.geotab.AOA.helpers
 
+import com.geotab.ioxproto.IoxMessaging
 import com.geotab.ioxproto.IoxMessaging.IoxToGo
 import com.geotab.ioxproto.IoxMessaging.PubSubToGo
 import com.geotab.ioxproto.IoxMessaging.Subscribe
@@ -26,6 +27,15 @@ class IOXHelper {
                     PubSubToGo
                         .newBuilder()
                         .setSub(Subscribe.newBuilder().setTopicValue(topic)))
+                .build()
+        }
+
+        fun getIOXUnsubscribeToTopicMessage(topic : Int): IoxToGo {
+            return IoxToGo.newBuilder()
+                .setPubSub(
+                    PubSubToGo
+                        .newBuilder()
+                        .setUnsub(IoxMessaging.Unsubscribe.newBuilder().setTopicValue(topic)))
                 .build()
         }
 
