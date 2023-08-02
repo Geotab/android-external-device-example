@@ -4,23 +4,39 @@ import android.graphics.Color
 import android.graphics.Typeface
 import java.util.Objects
 
-class TopicsDataModel(var name: String,
-                      var id: Int,
-                      var subscribed: SubscriptionStatus = SubscriptionStatus.UNSUBSCRIBED) {
+class TopicsDataModel(
+    var name: String,
+    var id: Int,
+    var subscribed: SubscriptionStatus = SubscriptionStatus.UNSUBSCRIBED
+) {
 
     var dataText: String = ""
     var counter = 0
-    constructor(name: String, id: Int,): this (name, id, SubscriptionStatus.UNSUBSCRIBED)
 
-    enum class SubscriptionStatus(val statusText: String, val color: Int, val typeface: Int) {
-        SUBSCRIBED("Subscribed", Color.argb(255, 0, 150, 0),
-            Typeface.BOLD),
-        UNSUBSCRIBED("Unsubscribed", Color.RED,
-            Typeface.ITALIC),
-        SUBSCRIBING("Subscribing...", Color.argb(255, 200, 200, 0),
-            Typeface.ITALIC),
-        UNSUBSCRIBING("Unsubscribing...", Color.argb(255, 200, 200, 0),
-        Typeface.ITALIC)
+    constructor(name: String, id: Int) : this(name, id, SubscriptionStatus.UNSUBSCRIBED)
+
+    enum class SubscriptionStatus(
+        val statusText: String,
+        val color: Int,
+        val typeface: Int,
+        val layoutElv: Float
+    ) {
+        SUBSCRIBED(
+            "Subscribed", Color.argb(255, 0, 150, 0),
+            Typeface.BOLD, 4.0f
+        ),
+        UNSUBSCRIBED(
+            "Unsubscribed", Color.RED,
+            Typeface.ITALIC, 2.0f
+        ),
+        SUBSCRIBING(
+            "Subscribing...", Color.argb(255, 200, 200, 0),
+            Typeface.ITALIC, 2.0f
+        ),
+        UNSUBSCRIBING(
+            "Unsubscribing...", Color.argb(255, 200, 200, 0),
+            Typeface.ITALIC, 2.0f
+        )
     }
 
     fun incrementCounter() {
