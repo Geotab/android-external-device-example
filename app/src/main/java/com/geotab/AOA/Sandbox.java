@@ -120,20 +120,33 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 
 		mAccessoryControl = new AccessoryControl(this, this);
 
-		dataModels.add(new TopicsDataModel("Empty", 0));
-		mTopicAdapter = new TopicsRecyclerAdapter(dataModels);
+		dataModels.add(new TopicsDataModel("Empty", -1));
+		mTopicAdapter = new TopicsRecyclerAdapter(dataModels, (item, index) ->
+		{
+			Log.d(TAG, "onItemClick: " + item);
+			if (mInterfaceStatus!= ThirdParty.State.IDLE){
+				showToast("IOX is not ready!");
+				return null;
+			}
+			if (item.getId()>0){
+				if(item.getSubscribed() != TopicsDataModel.SubscriptionStatus.SUBSCRIBED){
+					item.setSubscribed(TopicsDataModel.SubscriptionStatus.SUBSCRIBING);
+					protoBufSubscribeToTopic(item.getId());
+				}else{
+					item.setSubscribed(TopicsDataModel.SubscriptionStatus.UNSUBSCRIBING);
+					protoBufUnsubscribeToTopic(item.getId());
+					Log.d(TAG, "protoBufUnsubscribeToTopic: " + item);
+				}
+
+			}
+			mTopicAdapter.notifyItemChanged(index);
+			return null;
+		});
 		binding.topicsList.setAdapter(mTopicAdapter);
 		binding.topicsList.setLayoutManager(new LinearLayoutManager(this));
-		binding.topicsList.setOnClickListener(v ->{
-			//TopicsDataModel dataModel= dataModels.get(position);
-			Log.d(TAG, "onItemClick: "+v.getTag());
-		});
 
 		binding.btnIoxTopics.setOnClickListener(v -> protoGetAvailableTopics());
-		binding.btnGetSubs.setOnClickListener(v ->
-				protoGetSubscribedTopics());
-		binding.btnSubGps.setOnClickListener(v ->
-				protoBufSubscribeToTopic(IoxMessaging.Topic.TOPIC_GEAR_VALUE));
+		binding.btnGetSubs.setOnClickListener(v -> protoGetSubscribedTopics());
 	}
 
 	// Runs when the activity goes to the background
@@ -260,10 +273,21 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 		sendThirdPartyProtoBuf(ioxMessage);
 	}
 
+	void protoBufUnsubscribeToTopic(int topic){
+		byte[] ioxMessage = IOXHelper.Companion.getIOXUnsubscribeToTopicMessage(topic).toByteArray();
+		sendThirdPartyProtoBuf(ioxMessage);
+	}
+
 	void sendThirdPartyProtoBuf(byte[] ioxMessage){
-		byte[] abMessage = new byte[ioxMessage.length];
-		System.arraycopy(ioxMessage, 0, abMessage, 0, ioxMessage.length);
-		mAccessoryControl.sendThirdParty(ThirdParty.PROTOBUF_DATA_PACKET, abMessage);
+		if (mInterfaceStatus == ThirdParty.State.IDLE){
+			byte[] abMessage = new byte[ioxMessage.length];
+			System.arraycopy(ioxMessage, 0, abMessage, 0, ioxMessage.length);
+			mAccessoryControl.sendThirdParty(ThirdParty.PROTOBUF_DATA_PACKET, abMessage);
+		}else{
+			Log.e(TAG, "IOX is not ready!");
+			showToast("IOX is not ready!");
+		}
+
 	}
 
 	// Converts a string to a byte array
@@ -301,10 +325,10 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 		textView = findViewById(R.id.Latitude);
 		String sLatitude = textView.getText().toString();
 		textView = findViewById(R.id.Logitude);
-		String sLogitude = textView.getText().toString();
+		String sLongitude = textView.getText().toString();
 				
 		// Pass the location to Google maps
-		String geoCode = "geo:0,0?q=" + sLatitude + "," + sLogitude + "(HOS Location)";
+		String geoCode = "geo:0,0?q=" + sLatitude + "," + sLongitude + "(HOS Location)";
 		Intent sendLocationToMap = new Intent(Intent.ACTION_VIEW, Uri.parse(geoCode));
 		startActivity(sendLocationToMap);
 	}
@@ -323,6 +347,27 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 			if (message.getPubSub().hasPub()){
 				updateTopic(message.getPubSub().getPub());
 			}
+			if (message.getPubSub().hasSubAck()){
+				updateSubAck(message.getPubSub().getSubAck());
+			}
+			if (message.getPubSub().hasClearSubsAck()){
+				updateClearAllSubAck(message.getPubSub().getClearSubsAck());
+			}
+		}
+	}
+
+	public void updateClearAllSubAck(IoxMessaging.ClearSubsAck clearSubsAck){
+		if(clearSubsAck.getResult() == IoxMessaging.ClearSubsAck.Result.CLEAR_SUBS_ACK_RESULT_SUCCESS){
+			Log.d(TAG, "updatClearSubAck!");
+			//Todo:Clear all subscription status to unsubscribed!
+		}
+	}
+	public void updateSubAck(IoxMessaging.SubAck subAck){
+		if(subAck.getResult() == IoxMessaging.SubAck.Result.SUB_ACK_RESULT_SUCCESS ||
+				subAck.getResult() == IoxMessaging.SubAck.Result.SUB_ACK_RESULT_TOPIC_ALREADY_SUBBED){
+			updateSubscriptionStatus(subAck.getTopic(), true);
+		}else{
+			updateSubscriptionStatus(subAck.getTopic(), false);
 		}
 	}
 
@@ -366,22 +411,55 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 				break;
 		}
 	}
+
+	public void updateSubscriptionStatus(IoxMessaging.Topic topic,
+										 boolean acked){
+		if (acked) {
+			int index = getIndexByTopicName(topic);
+			if (index >= 0) {
+				Log.d(TAG, "updateDataSet: found index: " + index);
+				TopicsDataModel data = dataModels.get(index);
+
+				if (data.getSubscribed() == TopicsDataModel.SubscriptionStatus.SUBSCRIBING) {
+					data.setSubscribed(TopicsDataModel.SubscriptionStatus.SUBSCRIBED);
+				}
+				if (data.getSubscribed() == TopicsDataModel.SubscriptionStatus.UNSUBSCRIBING) {
+					data.setSubscribed(TopicsDataModel.SubscriptionStatus.UNSUBSCRIBED);
+				}
+				dataModels.set(index, data);
+				mTopicAdapter.notifyItemChanged(index);
+
+			} else {
+				Log.e(TAG, "updateDataSet: didn't find any index!");
+			}
+		}else{
+			Log.e(TAG, "updateDataSet: failed to unsubscribe!");
+		}
+	}
 	public void updateDataSet(IoxMessaging.Topic topic, String prompt){
 
-		int index = IntStream.range(0, dataModels.size())
-				.filter(i -> Objects.equals(dataModels.get(i).getName(), topic.name()))
-				.findFirst()
-				.orElse(-1);
+		int index = getIndexByTopicName(topic);
 			if(index >= 0){
 				Log.d(TAG, "updateDataSet: found index: "+ index + " prompt: "+prompt);
 				TopicsDataModel data = dataModels.get(index);
 				data.setDataText(prompt);
+				//We assume when data arrives, the topic was subscribed!
+				if (data.getSubscribed() != TopicsDataModel.SubscriptionStatus.SUBSCRIBED){
+					data.setSubscribed(TopicsDataModel.SubscriptionStatus.SUBSCRIBED);
+				}
 				data.incrementCounter();
 				dataModels.set(index,data);
 				mTopicAdapter.notifyItemChanged(index);
 			}else{
 				Log.e(TAG, "updateDataSet: didn't find any index!");
 			}
+	}
+
+	int getIndexByTopicName(IoxMessaging.Topic topic){
+		return IntStream.range(0, dataModels.size())
+				.filter(i -> Objects.equals(dataModels.get(i).getName(), topic.name()))
+				.findFirst()
+				.orElse(-1);
 	}
 
 	@SuppressLint("NotifyDataSetChanged")
@@ -403,10 +481,7 @@ public class Sandbox extends AppCompatActivity  implements IOXListener
 		if (dataModels.size()>0){
 			for (IoxMessaging.Topic topic : topics) {
 				if (topic.getNumber()>0){
-					int index = IntStream.range(0, dataModels.size())
-							.filter(i -> Objects.equals(dataModels.get(i).getName(), topic.name()))
-							.findFirst()
-							.orElse(-1);
+					int index = getIndexByTopicName(topic);
 					if (index >= 0){
 						TopicsDataModel data = dataModels.get(index);
 						data.setSubscribed(TopicsDataModel.SubscriptionStatus.SUBSCRIBED);
