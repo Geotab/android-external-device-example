@@ -346,7 +346,7 @@ public class Sandbox extends AppCompatActivity implements IOXListener {
     public void updateClearAllSubAck(IoxMessaging.ClearSubsAck clearSubsAck) {
         if (clearSubsAck.getResult() == IoxMessaging.ClearSubsAck.Result.CLEAR_SUBS_ACK_RESULT_SUCCESS) {
             Log.d(TAG, "updatClearSubAck!");
-            //Todo:Clear all subscription status to unsubscribed!
+            updateTopicSubscriptionsAll(TopicsDataModel.SubscriptionStatus.UNSUBSCRIBED);
         }
     }
 
@@ -426,7 +426,6 @@ public class Sandbox extends AppCompatActivity implements IOXListener {
     }
 
     public void updateDataSet(IoxMessaging.Topic topic, String prompt) {
-
         int index = getIndexByTopicName(topic);
         if (index >= 0) {
             Log.d(TAG, "updateDataSet: found index: " + index + " prompt: " + prompt);
@@ -467,30 +466,28 @@ public class Sandbox extends AppCompatActivity implements IOXListener {
     }
 
     public void updateTopicSubscriptions(List<IoxMessaging.Topic> topics) {
-		Log.d(TAG, "updateTopicSubscriptions topics size:" + topics.size());
+        Log.d(TAG, "updateTopicSubscriptions topics size:" + topics.size());
         if (dataModels.size() > 0) {
             if (topics.size() > 0) {
-				boolean founded = false;
-				for (int index = 0; index < dataModels.size(); index++) {
-					founded = false;
-					for (IoxMessaging.Topic topic : topics) {
-						if (topic.getNumber() > 0 && dataModels.get(index).getName().equals(topic.name())) {
-							Log.d(TAG, "updateTopicSubscriptions founded: " + dataModels.get(index).getName());
-							founded = true;
-							updateTopicSubscriptionsByIndex(index, TopicsDataModel.SubscriptionStatus.SUBSCRIBED);
-							mTopicAdapter.notifyItemChanged(index);
-							Log.d(TAG, "Subscribed: " + topic.name());
-							break;
-						}
-					}
-					if (!founded){
-						Log.d(TAG, "updateTopicSubscriptions not founded: " + dataModels.get(index).getName());
-						updateTopicSubscriptionsByIndex(index, TopicsDataModel.SubscriptionStatus.UNSUBSCRIBED);
-						mTopicAdapter.notifyItemChanged(index);
-					}
-				}
+                boolean founded = false;
+                for (int index = 0; index < dataModels.size(); index++) {
+                    founded = false;
+                    for (IoxMessaging.Topic topic : topics) {
+                        if (topic.getNumber() > 0 && dataModels.get(index).getName().equals(topic.name())) {
+                            founded = true;
+                            updateTopicSubscriptionsByIndex(index, TopicsDataModel.SubscriptionStatus.SUBSCRIBED);
+                            mTopicAdapter.notifyItemChanged(index);
+                            Log.d(TAG, "Subscribed: " + topic.name());
+                            break;
+                        }
+                    }
+                    if (!founded) {
+                        Log.d(TAG, "unsubscribed: " + dataModels.get(index).getName());
+                        updateTopicSubscriptionsByIndex(index, TopicsDataModel.SubscriptionStatus.UNSUBSCRIBED);
+                        mTopicAdapter.notifyItemChanged(index);
+                    }
+                }
             } else {
-				Log.d(TAG, "updateTopicSubscriptions got empty list");
                 updateTopicSubscriptionsAll(TopicsDataModel.SubscriptionStatus.UNSUBSCRIBED);
             }
         }
@@ -506,7 +503,7 @@ public class Sandbox extends AppCompatActivity implements IOXListener {
         for (int i = 0; i < dataModels.size(); i++) {
             updateTopicSubscriptionsByIndex(i, subscriptionStatus);
         }
-		mTopicAdapter.notifyDataSetChanged();
+        mTopicAdapter.notifyDataSetChanged();
     }
 
     @Override
