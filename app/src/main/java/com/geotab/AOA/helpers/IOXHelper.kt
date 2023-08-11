@@ -39,6 +39,15 @@ class IOXHelper {
                 .build()
         }
 
+        fun getIOXUnsubscribeAllMessage(): IoxToGo {
+            return IoxToGo.newBuilder()
+                .setPubSub(
+                    PubSubToGo
+                        .newBuilder().setClearSubs(Empty.getDefaultInstance()))
+                .build()
+        }
+
+
         fun ByteArray.toHexString() = asUByteArray().joinToString("") {
             it.toString(16).padStart(2, '0')
         }
