@@ -7,13 +7,13 @@ import java.util.Objects
 class TopicsDataModel(
     var name: String,
     var id: Int,
-    var subscribed: SubscriptionStatus = SubscriptionStatus.UNSUBSCRIBED
+    var subscribed: SubscriptionStatus = SubscriptionStatus.UNKNOWN
 ) {
 
     var dataText: String = ""
     var counter = 0
 
-    constructor(name: String, id: Int) : this(name, id, SubscriptionStatus.UN)
+    constructor(name: String, id: Int) : this(name, id, SubscriptionStatus.UNKNOWN)
 
     enum class SubscriptionStatus(
         val statusText: String,
@@ -38,7 +38,7 @@ class TopicsDataModel(
             Typeface.ITALIC, 2.0f
         ),
         UNKNOWN(
-        "Unknown", Color.DKGRAY,
+        "Unknown", Color.GRAY,
         Typeface.ITALIC, 1.0f
         )
     }
