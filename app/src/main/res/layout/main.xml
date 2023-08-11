@@ -65,7 +65,16 @@
                 android:paddingHorizontal="10dp"
                 android:layout_marginStart="10dp"
                 android:background="@drawable/main_button"
-                android:text="Get Subscriptions" />
+                android:text="@string/get_subscriptions" />
+
+            <Button
+                android:id="@+id/btn_unsubscribe_all"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="10dp"
+                android:layout_marginStart="10dp"
+                android:background="@drawable/main_button"
+                android:text="@string/unsubscribe_all" />
 
 
         </LinearLayout>
