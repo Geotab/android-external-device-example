@@ -53,6 +53,7 @@
 
             <Button
                 android:id="@+id/btn_iox_topics"
+                android:textAllCaps="false"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/main_button"
@@ -60,6 +61,7 @@
                 android:text="@string/get_iox_topics" />
             <Button
                 android:id="@+id/btn_get_subs"
+                android:textAllCaps="false"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="10dp"
@@ -69,6 +71,7 @@
 
             <Button
                 android:id="@+id/btn_unsubscribe_all"
+                android:textAllCaps="false"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="10dp"
