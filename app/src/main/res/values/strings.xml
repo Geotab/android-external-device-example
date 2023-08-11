@@ -6,4 +6,6 @@
     <string name="unsubscribed">Unsubscribed</string>
     <string name="subscribed">Subscribed</string>
     <string name="subscribing">Subscribing</string>
+    <string name="get_subscriptions">Get Subscriptions</string>
+    <string name="unsubscribe_all">Unsubscribe All</string>
 </resources>
