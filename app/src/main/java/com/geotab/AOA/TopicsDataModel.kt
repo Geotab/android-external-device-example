@@ -13,7 +13,7 @@ class TopicsDataModel(
     var dataText: String = ""
     var counter = 0
 
-    constructor(name: String, id: Int) : this(name, id, SubscriptionStatus.UNSUBSCRIBED)
+    constructor(name: String, id: Int) : this(name, id, SubscriptionStatus.UN)
 
     enum class SubscriptionStatus(
         val statusText: String,
@@ -36,6 +36,10 @@ class TopicsDataModel(
         UNSUBSCRIBING(
             "Unsubscribing...", Color.argb(255, 200, 200, 0),
             Typeface.ITALIC, 2.0f
+        ),
+        UNKNOWN(
+        "Unknown", Color.DKGRAY,
+        Typeface.ITALIC, 1.0f
         )
     }
 
