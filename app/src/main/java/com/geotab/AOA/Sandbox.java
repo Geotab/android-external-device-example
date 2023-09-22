@@ -66,7 +66,6 @@ public class Sandbox extends AppCompatActivity implements IOXListener {
     private AccessoryControl mAccessoryControl;
     private static final String TAG = Sandbox.class.getSimpleName();    // Used for error logging
     List<TopicsDataModel> dataModels = new ArrayList<>();
-    ;
     private static TopicsRecyclerAdapter mTopicAdapter;
     MainBinding binding = null;
     private ThirdParty.State mInterfaceStatus = ThirdParty.State.SEND_SYNC;
@@ -106,7 +105,6 @@ public class Sandbox extends AppCompatActivity implements IOXListener {
                 if (parent.getItemAtPosition(position).toString().equals("PROTOBUF PUB/SUB")) {
                     binding.hosLayout.setVisibility(View.GONE);
                     binding.pubSubLayout.setVisibility(View.VISIBLE);
-                    //Todo:
                     Log.d(TAG, "Switch to PROTOBUF PUB/SUB Mode");
                 } else {
                     binding.hosLayout.setVisibility(View.VISIBLE);
@@ -229,7 +227,7 @@ public class Sandbox extends AppCompatActivity implements IOXListener {
                 System.arraycopy(abData, 0, abMessage, abCommand.length, abData.length);
                 mAccessoryControl.sendThirdParty(bMessageType, abMessage);
             } else {
-                if (bMessageType != ThirdParty.PROTOBUF_DATA_PACKET) {
+                if (bMessageType != ThirdParty.PROTOBUF_DATA_TO_GO) {
                     // Send the data and message type directly
                     mAccessoryControl.sendThirdParty(bMessageType, abData);
                 }
@@ -273,7 +271,7 @@ public class Sandbox extends AppCompatActivity implements IOXListener {
         if (mInterfaceStatus == ThirdParty.State.IDLE) {
             byte[] abMessage = new byte[ioxMessage.length];
             System.arraycopy(ioxMessage, 0, abMessage, 0, ioxMessage.length);
-            mAccessoryControl.sendThirdParty(ThirdParty.PROTOBUF_DATA_PACKET, abMessage);
+            mAccessoryControl.sendThirdParty(ThirdParty.PROTOBUF_DATA_TO_GO, abMessage);
         } else {
             Log.e(TAG, "IOX is not ready!");
             showToast("IOX is not ready!");

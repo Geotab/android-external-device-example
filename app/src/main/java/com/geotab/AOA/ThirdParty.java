@@ -50,13 +50,13 @@ public class ThirdParty {
     private static final byte MESSAGE_HANDSHAKE = 1;
     private static final byte MESSAGE_ACK = 2;
     private static final byte MESSAGE_GO_DEVICE_DATA = 0x21;
-    private static final byte MESSAGE_GO_TO_IOX = 0x26;
+    private static final byte PROTOBUF_DATA_FROM_GO = 0x26;
     private static final byte MESSAGE_CONFIRMATION = (byte) 0x81;
     private static final byte MESSAGE_STATUS_DATA = (byte) 0x80;
     private static final byte TP_FREE_FORMAT_DATA = (byte) 0x82;
     private static final byte TP_DEVICE_INFO_RECEIVED = (byte) 0x83;
     private static final byte TP_HOS_ACK = (byte) 0x84;
-    static final byte PROTOBUF_DATA_PACKET = (byte) 0x8c;
+    static final byte PROTOBUF_DATA_TO_GO = (byte) 0x8c;
     private static final byte MESSAGE_SYNC = 0x55;
     private static final byte[] HOS_ENHANCED_ID_WITH_ACK = new byte[]{0x2D, 0x10, 0x00, 0x00};
 
@@ -69,7 +69,7 @@ public class ThirdParty {
                     new ThirdPartyMessage("FREE FORMAT", TP_FREE_FORMAT_DATA, null),
                     new ThirdPartyMessage("DEVICE INFO", TP_DEVICE_INFO_RECEIVED, null),
                     new ThirdPartyMessage("HOS ACK", TP_HOS_ACK, null),
-                    new ThirdPartyMessage("PROTOBUF PUB/SUB", PROTOBUF_DATA_PACKET, null),
+                    new ThirdPartyMessage("PROTOBUF PUB/SUB", PROTOBUF_DATA_TO_GO, null),
             };
 
     private final Lock mLock = new ReentrantLock();
@@ -274,12 +274,12 @@ public class ThirdParty {
                 mabMessage = BuildMessage(TP_HOS_ACK, abAck);
                 mAccessoryControl.write(mabMessage);
                 break;
-            case MESSAGE_GO_TO_IOX:
+            case PROTOBUF_DATA_FROM_GO:
                 try {
                     byte[] mDate = new byte[abData.length - 6];
                     System.arraycopy(abData, 3, mDate, 0, mDate.length);
                     IoxMessaging.IoxFromGo ioxFromGoMsg = IoxMessaging.IoxFromGo.parseFrom(mDate);
-                    Log.d(TAG, "RxMessage: MESSAGE_GO_TO_IOX MsgCase:"
+                    Log.d(TAG, "RxMessage: PROTOBUF_DATA_FROM_GO MsgCase:"
                             + ioxFromGoMsg.getMsgCase());
                     if (mIOXListener != null && mHandler != null) {
                         mHandler.post(() -> {
