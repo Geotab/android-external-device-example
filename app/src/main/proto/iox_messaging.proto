@@ -22,15 +22,6 @@
  * SOFTWARE.
  *****************************************************************************/
 
-/******************************************************************************
-Revision  Date        Author  Notes
-0.1       2023-04-05  YL      Initial draft
-0.2       2023-04-24  YL      Fix gps_time field number, rename Publish fields
-0.3       2023-05-03  YL      Add clear_subs_ack
-0.4       2023-07-14  NT      Add comments
-0.5       2023-08-02  HJ      Add package name
-*****************************************************************************/
-
 syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
@@ -40,7 +31,6 @@ package com.geotab.ioxproto;
  * This Proto file defines message payloads for the Third party Message Type 0x8C (Protobuf Data Packet from IOX to GO) and Message Type 0x26 (Protobuf Data Packet from GO to IOX).
  * The protobufs defined here follows a simple pub/sub protocol, where a third party IOX device can subscribe to one of the supported TOPICs (enum Topic) 
  * and receive the desired information from the GO.
- * The appropriate feature flag needs to be set to use the pub/sub functionality correctly.
  *
  * The list of some of the (unordered) messages and their use is as mentioned below.
  * 1. To get a list of all the subscribable topics: The external device needs to send an IoxToGo message with the pub_sub.list_avail_topics field set.
@@ -65,10 +55,6 @@ package com.geotab.ioxproto;
  *      of error when the request cannot be performed successfully.
  *
  * Note: The subscription is cleared if the GO or the IOX has lost power or if the IOX is disconnected from the GO device.
- * 
- * Note, If the feature flag is not enabled:
- *          - An IOX will not able to subscribe any topic.
- *          - The list of subscribable topics will be empty.
  *
  *
  *Example Message from IOX to GO:
@@ -172,7 +158,7 @@ message SubAck {
         SUB_ACK_RESULT_TOPIC_NOT_SUBBED = 5;
         // Unsubscribe fails if the subscription belongs to another IOX.
         SUB_ACK_RESULT_UNAVAILABLE = 6;
-        // IOX Pub/Sub is not enabled by the feature flag.
+        // Not currently used
         SUB_ACK_RESULT_DISABLED = 7;
     }
     Result result = 1;      // The result of a subscribe request or an unsubscribe request.
@@ -221,7 +207,7 @@ message TopicInfoList {
         CLEAR_SUBS_ACK_RESULT_SUCCESS = 1;
         // Clear subscription failed: The subscription is owned by another IOX.
         CLEAR_SUBS_ACK_RESULT_UNAVAILABLE = 2;
-        // Clear subscription failed: Pub/Sub is not enabled by the feature flag.
+        // Not currently used
         CLEAR_SUBS_ACK_RESULT_DISABLED = 3;
     }
     Result result = 1;  // This is the result of a Clear subscription request.
