@@ -57,7 +57,7 @@ package com.geotab.ioxproto;
  * Note: The subscription is cleared if the GO or the IOX has lost power or if the IOX is disconnected from the GO device.
  *
  *
- *Example Message from IOX to GO:
+ * Example Message from IOX to GO:
  *     0x8C is a message type sent from an external device to GO, to either subscribe or to get a list of topics or to get a list of subscribed topics etc. 
  *     The payload of the 0x8C message is the Pub/Sub message, encoded with Protobuf using nanopb.
  *     An example usage of the 0x8C message to subscribe to one of the topics like TOPIC_ACCEL is as described below.
@@ -112,7 +112,7 @@ package com.geotab.ioxproto;
 enum Topic {
     TOPIC_UNSPECIFIED = 0;              // Invalid topic,, (DO NOT USE)
     TOPIC_ACCEL = 1;                    // Vec3, m/s^2, To be implemented
-    TOPIC_GPS = 2;                      // Gps, Lat/Long: degrees. speed: km/h, To be implemented
+    TOPIC_GPS = 2;                      // Gps, Lat/Long: degrees. speed: km/h.
     TOPIC_BATTERY_VOLTAGE = 3;          // float, Volt, To be implemented
     TOPIC_VIN = 4;                      // String, Unitless
     TOPIC_GEAR = 5;             // 32 bit signed int, Unitless, -1=Reverse. 0=Neutral. 1-8:Nth gear. 126=Park. 127=Drive. 129=Intermediate. 130=Unknown. 
@@ -135,6 +135,10 @@ enum Topic {
     TOPIC_RIGHT_TURN_SIGNAL = 22;       // 32 bit signed int, Unitless, 0=Off. 1=On
     TOPIC_EV_CHARGING_STATE = 23;       // 32 bit signed int, Unitless, 0=Not Charging. 1=AC charging. 2=DC charging.
     TOPIC_PARK_BRAKE = 24;              // 32 bit signed int, Unitless, 0=Off. 1=On. 2=Error.
+    TOPIC_ENGINE_RUN_TIME = 25;         // 32 bit float, hours.
+    TOPIC_TRIP_ODOMETER = 26;           // 32 bit float, km.
+    TOPIC_DEVICE_POWER_CHANGE = 27;     // 32 bit signed int, unitless, power was unplugged or powered off.
+    TOPIC_DEVICE_DATA_BUFFER = 28;      // 32 bit signed int, unitless. The internal log buffer has overrun and old records have been discarded.
 }
 
 /**
