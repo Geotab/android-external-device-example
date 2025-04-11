@@ -51,7 +51,7 @@ package com.geotab.ioxproto;
  * 6. To clear the entire subscription list: The external device needs to send a IoxToGo message with the pub_sub.msg.clear_subs field set.
  *      The Go device responds with an IoxFromGo message with the pub_sub.clear_subs_ack.result field containing a 'CLEAR_SUBS_ACK_RESULT_SUCCESS'.
  *
- * Note: The IoxFromGo message with the pub_sub.sub_ack.result field or the pub_sub.clear_subs_ack.result field can contain the source 
+ * Note: The IoxFromGo message with the pub_sub.sub_ack.result field or the pub_sub.clear_subs_ack.result field can contain the source
  *      of error when the request cannot be performed successfully.
  *
  * Note: The subscription is cleared if the GO or the IOX has lost power or if the IOX is disconnected from the GO device.
@@ -103,7 +103,27 @@ package com.geotab.ioxproto;
  *              .which_msg = PubSubFromGo_sub_ack_tag, 
  *              .suback = { .result = SubAck_SUB_ACK_RESULT_SUCCESS, .topic = TOPIC_ACCEL }
  *          }
- *     } 
+ *     }
+ *
+ * Rate limit:
+ *     Rate limit is an optional argument used when subscribing to a topic. It will hold a value in milliseconds.
+ *     Its role is to limit the publishing of consecutive messages of a subscribed topic to intervals of at least the specified milliseconds.
+ *
+ *     Note that it is not guaranteed that publishing will be done at the specified rate.
+ *     It is guaranteed that a minimum time interval will pass between published messages of a topic.
+ *     This is due to the sample being published at the device sampling rate. If a rate limit lower than the production rate of the sample is selected,
+ *     publishing will occur at the device sampling rate.
+ *
+ *     When the rate limit will not be present during subscription, a default rate limit will be used. Depending on the topic used, the default
+ *     rate limit can vary. Please refer to the Topic enumeration below for default rate limit values.
+ *
+ * 2Hz GPS:
+ *     GPS data is normally published as a filtered stream at a speed of 1Hz. A raw GPS stream at 2Hz can be enabled by Geotab on customer request.
+ *
+ * Get last sample:
+ *     A new request-response message was added which will allow an IOX device to retrieve, if it exists, the latest sample data of a topic.
+ *     Note: this will work even if the topic was subscribed to or not. In case the topic was subscribed, please note that rate limit can interfere as
+ *     the response is a pubslish message.
  */
 
 // The ID of all the subscribable topics.
@@ -111,34 +131,37 @@ package com.geotab.ioxproto;
 // @exclude The comment is CSV format: 1st field is the type, 2nd field is the unit, 3rd field is the extra information (if any).
 enum Topic {
     TOPIC_UNSPECIFIED = 0;              // Invalid topic,, (DO NOT USE)
-    TOPIC_ACCEL = 1;                    // Vec3, m/s^2, To be implemented
-    TOPIC_GPS = 2;                      // Gps, Lat/Long: degrees. speed: km/h.
-    TOPIC_BATTERY_VOLTAGE = 3;          // float, Volt, To be implemented
-    TOPIC_VIN = 4;                      // String, Unitless
-    TOPIC_GEAR = 5;             // 32 bit signed int, Unitless, -1=Reverse. 0=Neutral. 1-8:Nth gear. 126=Park. 127=Drive. 129=Intermediate. 130=Unknown. 
-    TOPIC_ENGINE_SPEED = 6;             // 32 bit float, RPM
-    TOPIC_ENGINE_LOAD = 7;              // 32 bit float, %
-    TOPIC_ODOMETER = 8;                 // 32 bit float, km
-    TOPIC_ACCEL_PEDAL_PERCENTAGE = 9;   // 32 bit float, %
-    TOPIC_COOLANT_TEMP = 10;            // 32 bit float, degC
-    TOPIC_DOC_INTAKE_GAS_TEMP = 11;     // 32 bit float, degC
-    TOPIC_DOC_OUTLET_GAS_TEMP = 12;     // 32 bit float, degC
-    TOPIC_FUELTANK1_UNITS = 13;         // 32 bit float, Litres
-    TOPIC_FUELTANK2_UNITS = 14;         // 32 bit float, Litres
-    TOPIC_FUELTANK1_PERCENT = 15;       // 32 bit float, %
-    TOPIC_FUELTANK2_PERCENT = 16;       // 32 bit float, %
-    TOPIC_STATE_OF_CHARGE = 17;         // 32 bit float, %
-    TOPIC_ENGINE_ROAD_SPEED = 18;       // 32 bit float, km/h
-    TOPIC_VEHICLE_ACTIVE = 19;          // 32 bit signed int, Unitless, 0=Ignition Off. 1=Ignition On.
-    TOPIC_DRIVER_SEATBELT = 20;         // 32 bit signed int, Unitless, 0=Buckled. 1=Unbuckled.
-    TOPIC_LEFT_TURN_SIGNAL = 21;        // 32 bit signed int, Unitless, 0=Off. 1=On
-    TOPIC_RIGHT_TURN_SIGNAL = 22;       // 32 bit signed int, Unitless, 0=Off. 1=On
-    TOPIC_EV_CHARGING_STATE = 23;       // 32 bit signed int, Unitless, 0=Not Charging. 1=AC charging. 2=DC charging.
-    TOPIC_PARK_BRAKE = 24;              // 32 bit signed int, Unitless, 0=Off. 1=On. 2=Error.
-    TOPIC_ENGINE_RUN_TIME = 25;         // 32 bit float, hours.
-    TOPIC_TRIP_ODOMETER = 26;           // 32 bit float, km.
-    TOPIC_DEVICE_POWER_CHANGE = 27;     // 32 bit signed int, unitless, power was unplugged or powered off.
-    TOPIC_DEVICE_DATA_BUFFER = 28;      // 32 bit signed int, unitless. The internal log buffer has overrun and old records have been discarded.
+    TOPIC_ACCEL = 1;                    // Vec3, m/s^2. Default Rate_limit=100ms.
+    TOPIC_GPS = 2;                      // Gps, Lat/Long: degrees. speed: km/h. Default Rate_limit=1000ms.
+    TOPIC_BATTERY_VOLTAGE = 3;          // float, Volt. Default Rate_limit=0ms.
+    TOPIC_VIN = 4;                      // String, Unitless. Default Rate_limit=0ms.
+    TOPIC_GEAR = 5;             // 32 bit signed int, Unitless, -1=Reverse. 0=Neutral. 1-8:Nth gear. 126=Park. 127=Drive. 129=Intermediate. 130=Unknown. Default Rate_limit=0ms.
+    TOPIC_ENGINE_SPEED = 6;             // 32 bit float, RPM. Default Rate_limit=1000ms.
+    TOPIC_ENGINE_LOAD = 7;              // 32 bit float, %. Default Rate_limit=1000ms.
+    TOPIC_ODOMETER = 8;                 // 32 bit float, km. Default Rate_limit=0ms.
+    TOPIC_ACCEL_PEDAL_PERCENTAGE = 9;   // 32 bit float, %. Default Rate_limit=1000ms
+    TOPIC_COOLANT_TEMP = 10;            // 32 bit float, degC. Default Rate_limit=1000ms.
+    TOPIC_DOC_INTAKE_GAS_TEMP = 11;     // 32 bit float, degC. Default Rate_limit=1000ms.
+    TOPIC_DOC_OUTLET_GAS_TEMP = 12;     // 32 bit float, degC. Default Rate_limit=1000ms.
+    TOPIC_FUELTANK1_UNITS = 13;         // 32 bit float, Litres. Default Rate_limit=1000ms.
+    TOPIC_FUELTANK2_UNITS = 14;         // 32 bit float, Litres. Default Rate_limit=1000ms.
+    TOPIC_FUELTANK1_PERCENT = 15;       // 32 bit float, %. Default Rate_limit=1000ms.
+    TOPIC_FUELTANK2_PERCENT = 16;       // 32 bit float, %. Default Rate_limit=1000ms.
+    TOPIC_STATE_OF_CHARGE = 17;         // 32 bit float, %. Default Rate_limit=1000ms.
+    TOPIC_ENGINE_ROAD_SPEED = 18;       // 32 bit float, km/h. Default Rate_limit=1000ms.
+    TOPIC_VEHICLE_ACTIVE = 19;          // 32 bit signed int, Unitless, 0=Ignition Off. 1=Ignition On. Default Rate_limit=0ms.
+    TOPIC_DRIVER_SEATBELT = 20;         // 32 bit signed int, Unitless, 0=Buckled. 1=Unbuckled. Default Rate_limit=0ms.
+    TOPIC_LEFT_TURN_SIGNAL = 21;        // 32 bit signed int, Unitless, 0=Off. 1=On. Default Rate_limit=0ms.
+    TOPIC_RIGHT_TURN_SIGNAL = 22;       // 32 bit signed int, Unitless, 0=Off. 1=On. Default Rate_limit=0ms.
+    TOPIC_EV_CHARGING_STATE = 23;       // 32 bit signed int, Unitless, 0=Not Charging. 1=AC charging. 2=DC charging. Default Rate_limit=0ms.
+    TOPIC_PARK_BRAKE = 24;              // 32 bit signed int, Unitless, 0=Off. 1=On. 2=Error. Default Rate_limit=0ms.
+    TOPIC_ENGINE_RUN_TIME = 25;         // 32 bit float, hours. Default Rate_limit=0ms.
+    TOPIC_TRIP_ODOMETER = 26;           // 32 bit float, km. Default Rate_limit=1000ms.
+    TOPIC_DEVICE_POWER_CHANGE = 27;     // 32 bit signed int, unitless, power was unplugged or powered off. Default Rate_limit=0ms.
+    TOPIC_DEVICE_DATA_BUFFER = 28;      // 32 bit signed int, unitless. The internal log buffer has overrun and old records have been discarded. Default Rate_limit=0ms.
+    TOPIC_VISIBLE_SATELLITE = 29;       // 32 bit signed int. Default Rate_limit=1000ms.
+    TOPIC_HDOP = 30;                    // 32 bit signed int. Default Rate_limit=1000ms.
+    TOPIC_GO_TIME = 31;                 // bool_value depending if GO time is valid or not, unitless. Default Rate_limit=1000ms.
 }
 
 /**
@@ -166,6 +189,28 @@ message SubAck {
         SUB_ACK_RESULT_DISABLED = 7;
     }
     Result result = 1;      // The result of a subscribe request or an unsubscribe request.
+    Topic topic = 2;        // The topic specified in the request.
+}
+
+/**
+ * GO to IOX: 3nd level of a IoxFromGo message.
+ * This structure contains a response to a TopicLastData request.
+ */
+message TopicLastDataAck {
+    // Possible result returned from a TopicLastData request.
+    enum Result {
+        // Not used; zero is never returned as a Result.
+        TLD_ACK_RESULT_UNSPECIFIED = 0;
+        // TopicLastData success
+        TLD_ACK_RESULT_SUCCESS = 1;
+        // TopicLastData fails if an unknown topic is specified
+        TLD_ACK_RESULT_UNKNOWN_TOPIC = 2;
+        // TopicLastData fails if no data stored in retained.
+        TLD_ACK_RESULT_DATA_UNAVAILABLE = 3;
+        // Not currently used
+        TLD_ACK_RESULT_DISABLED = 4;
+    }
+    Result result = 1;      // The result of a TopicLastData request.
     Topic topic = 2;        // The topic specified in the request.
 }
 
@@ -271,7 +316,8 @@ message Publish {
  * Subscribe request: An external device sends this message to subscribe an available topic.
  */
 message Subscribe {
-    Topic topic = 1;        // ID of the topic the IOX wishes to subscribe.
+    Topic topic = 1;                 // ID of the topic the IOX wishes to subscribe.
+    optional uint32 Rate_limit = 2;  // The minimum period between 2 consecutive publishing (msecs).
 }
 
 /**
@@ -280,6 +326,14 @@ message Subscribe {
  */
 message Unsubscribe {
     Topic topic = 1;        // ID of a subscribed topic, the IOX wishes to removed.
+}
+
+/**
+ * IOX to GO: 3rd level of an IoxToGo message.
+ * TopicLastData request: An external device sends this message to retrieve topic last data.
+ */
+message TopicLastData {
+    Topic topic = 1;        // ID of a topic, the IOX wishes to get the data.
 }
 
 /**
@@ -299,6 +353,8 @@ message PubSubToGo {
         google.protobuf.Empty clear_subs = 4;
         // Subscribable list request: Get the list of all subscribable topics.
         google.protobuf.Empty list_avail_topics = 5;
+        // Request topic last data.
+        TopicLastData lastData = 6;
     }
 }
 
@@ -319,6 +375,8 @@ message PubSubFromGo {
         Publish pub = 4;
         // Reply to clear_subs, indicating success/failure
         ClearSubsAck clear_subs_ack = 5;
+        // Reply to TopicLastData request indicating success/failure
+        TopicLastDataAck lastData_ack = 6;
     }
 }
 
