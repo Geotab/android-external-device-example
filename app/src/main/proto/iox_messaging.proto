@@ -29,23 +29,23 @@ import "google/protobuf/empty.proto";
 package com.geotab.ioxproto;
 /**
  * This Proto file defines message payloads for the Third party Message Type 0x8C (Protobuf Data Packet from IOX to GO) and Message Type 0x26 (Protobuf Data Packet from GO to IOX).
- * The protobufs defined here follows a simple pub/sub protocol, where a third party IOX device can subscribe to one of the supported TOPICs (enum Topic) 
+ * The protobufs defined here follows a simple pub/sub protocol, where a third party IOX device can subscribe to one of the supported TOPICs (enum Topic)
  * and receive the desired information from the GO.
  *
  * The list of some of the (unordered) messages and their use is as mentioned below.
  * 1. To get a list of all the subscribable topics: The external device needs to send an IoxToGo message with the pub_sub.list_avail_topics field set.
  *      The GO device responds with an IoxFromGo message with the pub_sub.topic_info_list field.
  *
- * 2. To subscribe to a topic: The external device needs to send an IoxToGo message with the pub_sub.sub field set. 
+ * 2. To subscribe to a topic: The external device needs to send an IoxToGo message with the pub_sub.sub field set.
  *      The Go device responds with an IoxFromGo message with the pub_sub.sub_ack.result field containing 'SUB_ACK_RESULT_SUCCESS'.
- * 
- * 3. To get a list of subscribed topics: The external device needs to send a IoxToGo message with the pub_sub.msg.list_subs field set. 
+ *
+ * 3. To get a list of subscribed topics: The external device needs to send a IoxToGo message with the pub_sub.msg.list_subs field set.
  *      The GO device responds with an IoxFromGo message with the pub_sub.topic_list field.
  *
- * 4. How the external device gets published information for subscribed topics: 
+ * 4. How the external device gets published information for subscribed topics:
  *      When there is an update to a subscribed topic, the GO device sends the update in an IoxFromGo message with the pub_sub.pub field set.
  *
- * 5. To remove a topic from the subscription: The external device needs to send a IoxToGo message with the pub_sub.msg.unsub field set. 
+ * 5. To remove a topic from the subscription: The external device needs to send a IoxToGo message with the pub_sub.msg.unsub field set.
  *      The Go device responds with an IoxFromGo message with the pub_sub.sub_ack.result field containing a 'SUB_ACK_RESULT_SUCCESS'.
  *
  * 6. To clear the entire subscription list: The external device needs to send a IoxToGo message with the pub_sub.msg.clear_subs field set.
@@ -58,15 +58,15 @@ package com.geotab.ioxproto;
  *
  *
  * Example Message from IOX to GO:
- *     0x8C is a message type sent from an external device to GO, to either subscribe or to get a list of topics or to get a list of subscribed topics etc. 
+ *     0x8C is a message type sent from an external device to GO, to either subscribe or to get a list of topics or to get a list of subscribed topics etc.
  *     The payload of the 0x8C message is the Pub/Sub message, encoded with Protobuf using nanopb.
  *     An example usage of the 0x8C message to subscribe to one of the topics like TOPIC_ACCEL is as described below.
- * 
- *     0x8C fields values: 
+ *
+ *     0x8C fields values:
  *         STX=0x02, MessageId = 0x8C, Data payload: Protobuf encoding for message IoxToGo (detailed below), ETX=0x03
  *
- *     IoxToGo message = { 
- *              .which_msg = IoxToGo_pub_sub_tag, 
+ *     IoxToGo message = {
+ *              .which_msg = IoxToGo_pub_sub_tag,
  *              .pub_sub = { .which_msg = PubSubToGo_sub_tag, .sub = { .topic = TOPIC_ACCEL }}
  *     };
  *     IoxToGo message = { .which_msg = 0x01, .pub_sub = { .which_msg = 0x01, .sub = { .topic = 0x01 }}};
@@ -75,32 +75,32 @@ package com.geotab.ioxproto;
  *          This leads to, IoxToGo message length after Protobuf encoding: 0x06
  *          Checksum calculation from (0x02 0x8C 0x06, 0x0A 0x04 0x0A 0x02 0x08 0x01) = (0xB7 0x28)
  *          The result Data Payload = (0x06 0x0A 0x04 0x0A 0x02 0x08 0x01 0xB7 0x28)
- * 
- *     So, the final byte stream that the external device would send to GO, in order to subscribe for the TOPIC_ACCEL should be: 
+ *
+ *     So, the final byte stream that the external device would send to GO, in order to subscribe for the TOPIC_ACCEL should be:
  *          <0x02 0x8C 0x06 0x0A 0x04 0x0A 0x02 0x08 0x01 0xB7 0x28 0x03>
- * 
+ *
  *
  * Example Response/Event from GO to IOX:
  *     0x26 is a message type sent from GO to an external device, to either acknowledge a subscription request or other request sent from the external device.
- * 
+ *
  *     An example usage of the 0x26 message is to acknowledge a request to subscribe to a topic such as TOPIC_ACCEL, the message is described as below.
- * 
+ *
  *     The external device will receive a 0x26 message from the GO device such as:
  *         (0x02 0x26 0x08 0x0A 0x06 0x0A 0x04 0x08 0x01 0x10 0x01 0x68 0xE8 0x03)
- * 
+ *
  *     The extracted IoxFromGo message with Protobuf encoding = (0x0A 0x06 0x0A 0x04 0x08 0x01 0x10 0x01)
  *     The IoxFromGo message after decoding = {
- *          .which_msg = 0x01, 
+ *          .which_msg = 0x01,
  *          .pub_sub = {
- *               .which_msg = 0x01, 
+ *               .which_msg = 0x01,
  *               .suback = { .result = 0x01, .topic = 0x01 }
  *          }
  *      }
- * 
- *     The IoxFromGo message can be interpreted as { 
- *          .which_msg = IoxFromGo_pub_sub_tag, 
+ *
+ *     The IoxFromGo message can be interpreted as {
+ *          .which_msg = IoxFromGo_pub_sub_tag,
  *          .pub_sub = {
- *              .which_msg = PubSubFromGo_sub_ack_tag, 
+ *              .which_msg = PubSubFromGo_sub_ack_tag,
  *              .suback = { .result = SubAck_SUB_ACK_RESULT_SUCCESS, .topic = TOPIC_ACCEL }
  *          }
  *     }
@@ -162,6 +162,8 @@ enum Topic {
     TOPIC_VISIBLE_SATELLITE = 29;       // 32 bit signed int. Default Rate_limit=1000ms.
     TOPIC_HDOP = 30;                    // 32 bit signed int. Default Rate_limit=1000ms.
     TOPIC_GO_TIME = 31;                 // bool_value depending if GO time is valid or not, unitless. Default Rate_limit=1000ms.
+    TOPIC_BRAKE_PEDAL = 32;             // bool value for when brake pedal is pressed, unitless. Default Rate_limit=1000ms.
+    TOPIC_BRAKE_PEDAL_PERCENTAGE = 33;  // 32 bit float, %. Default Rate_limit=1000ms.
 }
 
 /**
@@ -215,7 +217,7 @@ message TopicLastDataAck {
 }
 
 /**
- * GO to IOX: 
+ * GO to IOX:
  * This is part of the response to the Subscribable list request message.
  * This structure contains the information of one subscribable topics.
  */
@@ -225,7 +227,7 @@ message TopicInfo {
 }
 
 /**
- * GO to IOX: 3rd level of an IoxFromGo message. 
+ * GO to IOX: 3rd level of an IoxFromGo message.
  * This is a response to the Subscribed list request message.
  * This structure provides the list of all the subscribed topics.
  */
@@ -235,7 +237,7 @@ message TopicList {
 }
 
 /**
- * GO to IOX: 3rd level of an IoxFromGo message. 
+ * GO to IOX: 3rd level of an IoxFromGo message.
  * This is a response to the Subscribable list request message.
  * This structure contains the information of all subscribable topics.
  */
@@ -244,7 +246,7 @@ message TopicInfoList {
 }
 
 /**
- * GO to IOX: 3rd level of an IoxFromGo message. 
+ * GO to IOX: 3rd level of an IoxFromGo message.
  * This is a response to a Clear subscription request.
  */
  message ClearSubsAck {
